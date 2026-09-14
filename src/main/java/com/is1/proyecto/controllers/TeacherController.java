@@ -594,6 +594,17 @@ return new ModelAndView(model, "docente_edit_form.mustache");
             }, new MustacheTemplateEngine());
 
         post("/docente/edit/:id", (req, res) -> {
+            Boolean loggedIn = req.session().attribute("loggedIn");
+            String  userRole = req.session().attribute("userRole");
+            if (!Boolean.TRUE.equals(loggedIn)) {
+                res.redirect("/login");
+                return null;
+            }
+            if (!"ADMIN".equals(userRole) && !"SECRETARIA".equals(userRole)) {
+                res.status(403);
+                return "Acceso denegado.";
+            }
+
             int docenteId = Integer.parseInt(req.params("id"));
             String nombre      = req.queryParams("nombre");
             String apellido    = req.queryParams("apellido");
@@ -617,6 +628,17 @@ return new ModelAndView(model, "docente_edit_form.mustache");
         });
 
         post("/docente/delete/:id", (req, res) -> {
+            Boolean loggedIn = req.session().attribute("loggedIn");
+            String  userRole = req.session().attribute("userRole");
+            if (!Boolean.TRUE.equals(loggedIn)) {
+                res.redirect("/login");
+                return null;
+            }
+            if (!"ADMIN".equals(userRole) && !"SECRETARIA".equals(userRole)) {
+                res.status(403);
+                return "Acceso denegado.";
+            }
+
             int docenteId  = Integer.parseInt(req.params("id"));
             int myId = ((Number) req.session().attribute("userId")).intValue();
 
