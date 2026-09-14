@@ -37,19 +37,21 @@ public class App {
      * Aquí se configuran todas las rutas y filtros de Spark.
      */
     public static void main(String[] args) {
-        
         io.github.cdimascio.dotenv.Dotenv dotenv = io.github.cdimascio.dotenv.Dotenv
             .configure()
-            .ignoreIfMissing()   // no falla si no existe .env
+            .ignoreIfMissing()
             .load();
-
         dotenv.entries().forEach(entry -> {
             if (System.getenv(entry.getKey()) == null) {
                 System.setProperty(entry.getKey(), entry.getValue());
             }
         });
 
-        port(8080); // Escucha en el puerto 8080.
+        init(8080);
+    }
+
+    public static void init(int puerto) {
+        port(puerto); // Escucha en el puerto especificado.
         // Habilita el manejo de archivos estáticos (CSS, JS, imágenes). (por defecto es 4567).
 
         // Obtener la instancia única del singleton de configuración de la base de datos.

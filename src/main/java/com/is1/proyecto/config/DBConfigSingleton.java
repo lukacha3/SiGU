@@ -13,6 +13,17 @@ public final class DBConfigSingleton {
     private final String driver;
 
     private DBConfigSingleton() {
+        String testDbUrl = System.getProperty("db.url");
+        if (testDbUrl != null && !testDbUrl.isBlank()) {
+            // Perfil de test (ver pom.xml, profile "test"): SQLite aislado,
+            // no toca la base de desarrollo/producción real.
+            this.dbUrl = testDbUrl;
+            this.driver = "org.sqlite.JDBC";
+            this.user = "";
+            this.pass = "";
+            return;
+        }
+
         // Forzamos el uso de MySQL ya que el proyecto fue migrado completamente.
         // Ignoramos System.getenv("DB_URL") porque tu terminal local seguía inyectando
         // una URL de SQLite antigua.
