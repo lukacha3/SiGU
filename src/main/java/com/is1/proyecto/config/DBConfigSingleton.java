@@ -20,10 +20,22 @@ public final class DBConfigSingleton {
         this.driver = "com.mysql.cj.jdbc.Driver";
 
         String envUser = System.getenv("DB_USER");
-        this.user = (envUser != null) ? envUser : "dev";
+        if (envUser == null || envUser.isBlank()) {
+            throw new IllegalStateException(
+                "La variable de entorno DB_USER no está definida. " +
+                "Revisá el archivo .env.example para ver las variables requeridas."
+            );
+        }
+        this.user = envUser;
 
         String envPass = System.getenv("DB_PASS");
-        this.pass = (envPass != null) ? envPass : "4dm1n";
+        if (envPass == null || envPass.isBlank()) {
+            throw new IllegalStateException(
+                "La variable de entorno DB_PASS no está definida. " +
+                "Revisá el archivo .env.example para ver las variables requeridas."
+            );
+        }
+        this.pass = envPass;
     }
 
     public static synchronized DBConfigSingleton getInstance() {

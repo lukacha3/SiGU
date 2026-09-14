@@ -129,10 +129,10 @@ public class AuthController {
                             BCrypt.checkpw(plainTextPassword, ac.getString("password"))
                         ) {
                             // --- Gestión de Sesión ---
-                            req.session(true).attribute(
-                                "currentUserUsername",
-                                username
-                            );
+                            req.session(true); // asegura que exista una sesión
+                            req.raw().changeSessionId(); // previene session fixation
+
+                            req.session().attribute("currentUserUsername", username);
                             req.session().attribute("userId", ac.getId());
                             req.session().attribute("loggedIn", true);
 
