@@ -55,6 +55,10 @@
                 class="tab-btn px-5 py-2.5 rounded-t-lg text-sm font-semibold transition-all duration-200 focus:outline-none border-t border-l border-r border-transparent">
                 📚 Materias
             </button>
+            <button onclick="switchTab('sesiones')"    id="tab-sesiones"
+                class="tab-btn px-5 py-2.5 rounded-t-lg text-sm font-semibold transition-all duration-200 focus:outline-none border-t border-l border-r border-transparent">
+                🛡️ Sesiones
+            </button>
         </div>
 
         <div class="bg-white dark:bg-[#2a3a4d] rounded-b-xl rounded-tr-xl p-6 shadow-md border border-gray-200 dark:border-gray-700 border-t-0">
@@ -236,11 +240,68 @@
                 {{/materias}}
             </div>
 
+            <!-- ====== TAB: SESIONES ====== -->
+            <div id="panel-sesiones" class="tab-panel hidden">
+                <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
+                    <h2 class="text-[#1a3a5c] dark:text-white font-semibold text-lg">Sesiones activas</h2>
+                    <input type="text"
+                           placeholder="Filtrar por nombre o usuario..."
+                           oninput="filterTable('tabla-sesiones', this.value)"
+                           class="px-3 py-1.5 rounded-md bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-[#2471a3] w-full sm:w-72">
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table id="tabla-sesiones" class="w-full text-sm">
+                        <thead>
+                            <tr class="border-b border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 uppercase text-xs tracking-wider">
+                                <th class="text-left py-2 pr-4">Usuario</th>
+                                <th class="text-left py-2 pr-4">Usuario (login)</th>
+                                <th class="text-left py-2 pr-4">Rol</th>
+                                <th class="text-left py-2 pr-4">Inicio de sesión</th>
+                                <th class="text-left py-2 pr-4">Expira</th>
+                                <th class="text-left py-2">Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                            {{#sesiones}}
+                            <tr class="hover:bg-gray-50 dark:hover:bg-[#1f3044] transition-colors">
+                                <td class="py-2.5 pr-4 text-gray-900 dark:text-white font-medium">{{nombre}}</td>
+                                <td class="py-2.5 pr-4 text-gray-600 dark:text-gray-400 font-mono text-xs">{{username}}</td>
+                                <td class="py-2.5 pr-4">
+                                    <span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600">
+                                        {{rol}}
+                                    </span>
+                                </td>
+                                <td class="py-2.5 pr-4 text-gray-500 dark:text-gray-500 text-xs">{{fechaInicio}}</td>
+                                <td class="py-2.5 pr-4 text-gray-500 dark:text-gray-500 text-xs">{{fechaExpira}}</td>
+                                <td class="py-2.5">
+                                    <form action="/configuracion/sesiones/{{usuarioId}}/cerrar" method="post" style="display:inline;">
+                                        <button type="submit"
+                                            onclick="return confirm('¿Forzar el cierre de sesión de {{nombre}}?')"
+                                            class="px-3 py-1 rounded text-xs font-semibold bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800 hover:bg-red-200 dark:hover:bg-red-800/50 transition-colors">
+                                            Cerrar sesión
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {{/sesiones}}
+                        </tbody>
+                    </table>
+                </div>
+
+                {{^sesiones}}
+                <div class="text-center py-16 text-gray-500 dark:text-gray-400">
+                    <div class="text-5xl mb-3">🛡️</div>
+                    <p>No hay sesiones activas en el sistema.</p>
+                </div>
+                {{/sesiones}}
+            </div>
+
         </div>
     </div>
 
     <script>
-        const TABS = ['docentes', 'estudiantes', 'materias'];
+        const TABS = ['docentes', 'estudiantes', 'materias', 'sesiones'];
 
         function switchTab(tab) {
             TABS.forEach(t => {

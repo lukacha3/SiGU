@@ -44,6 +44,22 @@ import java.util.Arrays;
 
 public class ConfiguracionController {
     public static void register() {
+        post("/configuracion/sesiones/:usuarioId/cerrar", (req, res) -> {
+                Boolean loggedIn = req.session().attribute("loggedIn");
+                String  userRole = req.session().attribute("userRole");
+                if (!Boolean.TRUE.equals(loggedIn)) { res.redirect("/login"); return null; }
+                if (!"ADMIN".equals(userRole) && !"SECRETARIA".equals(userRole)) {
+                    res.status(403);
+                    return "Acceso denegado.";
+                }
+
+                int usuarioId = Integer.parseInt(req.params("usuarioId"));
+                com.is1.proyecto.models.Sesion.delete("usuario_id = ?", usuarioId);
+
+                res.redirect("/configuracion?message=" + URLEncoder.encode(
+                    "Sesión cerrada correctamente.", StandardCharsets.UTF_8.toString()) + "#sesiones");
+                return null;
+            });
         get("/configuracion", (req, res) -> {
                 Boolean loggedIn = req.session().attribute("loggedIn");
                 String  userRole = req.session().attribute("userRole");
@@ -150,6 +166,26 @@ return new ModelAndView(errModel, "error.mustache");
         model.put("username", req.session().attribute("currentUserUsername"));
     }
 }
+                // Sesiones
+                List<Map> sesionesDB = Base.findAll(
+                    "SELECT s.usuario_id, u.nombre, u.apellido, u.nombre_usuario, u.nivel_acceso, " +
+                    "       s.fecha_inicio, s.fecha_expiracion " +
+                    "FROM sesion s JOIN users u ON u.id = s.usuario_id " +
+                    "ORDER BY s.fecha_inicio DESC"
+                );
+                List<Map<String, Object>> sesionesList = new ArrayList<>();
+                for (Map f : sesionesDB) {
+                    Map<String, Object> sm = new HashMap<>();
+                    sm.put("usuarioId",     ((Number) f.get("usuario_id")).intValue());
+                    sm.put("nombre",        f.get("nombre") + " " + f.get("apellido"));
+                    sm.put("username",      f.get("nombre_usuario"));
+                    sm.put("rol",           f.get("nivel_acceso"));
+                    sm.put("fechaInicio",   f.get("fecha_inicio"));
+                    sm.put("fechaExpira",   f.get("fecha_expiracion"));
+                    sesionesList.add(sm);
+                }
+                model.put("sesiones", sesionesList);
+
 return new ModelAndView(model, "configuracion.mustache");
             }, new MustacheTemplateEngine());
 
