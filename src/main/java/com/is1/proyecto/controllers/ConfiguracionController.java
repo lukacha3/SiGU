@@ -1,6 +1,7 @@
 package com.is1.proyecto.controllers;
 
 import static spark.Spark.*; // Importa los métodos estáticos principales de Spark (get, post, before, after, etc.).
+import com.is1.proyecto.config.AccessControl;
 import com.fasterxml.jackson.databind.ObjectMapper; // Utilidad para serializar/deserializar objetos Java a/desde JSON.
 import com.is1.proyecto.config.DBConfigSingleton; // Clase Singleton para la configuración de la base de datos.
 import com.is1.proyecto.models.Anuncio;
@@ -44,15 +45,13 @@ import java.util.Arrays;
 
 public class ConfiguracionController {
     public static void register() {
-        post("/configuracion/sesiones/:usuarioId/cerrar", (req, res) -> {
-                Boolean loggedIn = req.session().attribute("loggedIn");
-                String  userRole = req.session().attribute("userRole");
-                if (!Boolean.TRUE.equals(loggedIn)) { res.redirect("/login"); return null; }
-                if (!"ADMIN".equals(userRole) && !"SECRETARIA".equals(userRole)) {
-                    res.status(403);
-                    return "Acceso denegado.";
-                }
+        AccessControl.requireRole("/configuracion", "ADMIN", "SECRETARIA");
+        AccessControl.requireRole("/configuracion/sesiones/*", "ADMIN", "SECRETARIA");
+        AccessControl.requireRole("/estudiante/delete/*", "ADMIN", "SECRETARIA");
+        AccessControl.requireRole("/materia/edit/*", "ADMIN", "SECRETARIA");
+        AccessControl.requireRole("/materia/delete/*", "ADMIN", "SECRETARIA");
 
+        post("/configuracion/sesiones/:usuarioId/cerrar", (req, res) -> {
                 int usuarioId = Integer.parseInt(req.params("usuarioId"));
                 com.is1.proyecto.models.Sesion.delete("usuario_id = ?", usuarioId);
 
@@ -61,29 +60,6 @@ public class ConfiguracionController {
                 return null;
             });
         get("/configuracion", (req, res) -> {
-                Boolean loggedIn = req.session().attribute("loggedIn");
-                String  userRole = req.session().attribute("userRole");
-                if (!Boolean.TRUE.equals(loggedIn)) {
-                    res.redirect("/login");
-                    return null;
-                }
-                if (!"ADMIN".equals(userRole) && !"SECRETARIA".equals(userRole)) {
-                    res.status(403);
-                    Map<String, Object> errModel = new HashMap<>();
-                    errModel.put("errorMessage", "Acceso denegado. Solo ADMIN o SECRETARIA pueden acceder a Configuración.");
-                    if (req.session().attribute("loggedIn") != null && req.session().attribute("loggedIn").equals(true)) {
-    if (req.session().attribute("fotoPerfil") != null) {
-        errModel.put("foto_perfil", req.session().attribute("fotoPerfil"));
-    } else {
-        errModel.put("foto_perfil", "/img/default-avatar.png");
-    }
-    if (!errModel.containsKey("username") && req.session().attribute("currentUserUsername") != null) {
-        errModel.put("username", req.session().attribute("currentUserUsername"));
-    }
-}
-return new ModelAndView(errModel, "error.mustache");
-                }
-    
                 // Docentes
                 List<Map> docentesDB = Base.findAll(
                     "SELECT u.id, u.nombre, u.apellido, u.dni, " +
@@ -190,13 +166,6 @@ return new ModelAndView(model, "configuracion.mustache");
             }, new MustacheTemplateEngine());
 
         post("/estudiante/delete/:id", (req, res) -> {
-                Boolean loggedIn = req.session().attribute("loggedIn");
-                String  userRole = req.session().attribute("userRole");
-                if (!Boolean.TRUE.equals(loggedIn)) { res.redirect("/login"); return null; }
-                if (!"ADMIN".equals(userRole) && !"SECRETARIA".equals(userRole)) {
-                    res.status(403); return "Acceso denegado.";
-                }
-    
                 int estudianteId = Integer.parseInt(req.params("id"));
                 Object currentUserId = req.session().attribute("userId");
                 int    myId = ((Number) currentUserId).intValue();
@@ -231,26 +200,6 @@ return new ModelAndView(model, "configuracion.mustache");
             });
 
         get("/materia/edit/:codigo", (req, res) -> {
-                Boolean loggedIn = req.session().attribute("loggedIn");
-                String  userRole = req.session().attribute("userRole");
-                if (!Boolean.TRUE.equals(loggedIn)) { res.redirect("/login"); return null; }
-                if (!"ADMIN".equals(userRole) && !"SECRETARIA".equals(userRole)) {
-                    res.status(403);
-                    Map<String, Object> em = new HashMap<>();
-                    em.put("errorMessage", "Acceso denegado.");
-                    if (req.session().attribute("loggedIn") != null && req.session().attribute("loggedIn").equals(true)) {
-    if (req.session().attribute("fotoPerfil") != null) {
-        em.put("foto_perfil", req.session().attribute("fotoPerfil"));
-    } else {
-        em.put("foto_perfil", "/img/default-avatar.png");
-    }
-    if (!em.containsKey("username") && req.session().attribute("currentUserUsername") != null) {
-        em.put("username", req.session().attribute("currentUserUsername"));
-    }
-}
-return new ModelAndView(em, "error.mustache");
-                }
-    
                 int codigo = Integer.parseInt(req.params("codigo"));
                 List<Map> rows = Base.findAll(
                     "SELECT m.codigo, m.nombre, m.anio_cursada, m.carga_horaria_total, " +
@@ -291,13 +240,6 @@ return new ModelAndView(model, "materia_edit_form.mustache");
             }, new MustacheTemplateEngine());
 
         post("/materia/edit/:codigo", (req, res) -> {
-                Boolean loggedIn = req.session().attribute("loggedIn");
-                String  userRole = req.session().attribute("userRole");
-                if (!Boolean.TRUE.equals(loggedIn)) { res.redirect("/login"); return null; }
-                if (!"ADMIN".equals(userRole) && !"SECRETARIA".equals(userRole)) {
-                    res.status(403); return "Acceso denegado.";
-                }
-    
                 int codigo          = Integer.parseInt(req.params("codigo"));
                 String nombre       = req.queryParams("nombre");
                 String anioStr      = req.queryParams("anio_cursada");
@@ -333,13 +275,6 @@ return new ModelAndView(model, "materia_edit_form.mustache");
             });
 
         post("/materia/delete/:codigo", (req, res) -> {
-                Boolean loggedIn = req.session().attribute("loggedIn");
-                String  userRole = req.session().attribute("userRole");
-                if (!Boolean.TRUE.equals(loggedIn)) { res.redirect("/login"); return null; }
-                if (!"ADMIN".equals(userRole) && !"SECRETARIA".equals(userRole)) {
-                    res.status(403); return "Acceso denegado.";
-                }
-    
                 int codigo = Integer.parseInt(req.params("codigo"));
     
                 List<Map> check = Base.findAll("SELECT codigo FROM Materia WHERE codigo = ?", codigo);

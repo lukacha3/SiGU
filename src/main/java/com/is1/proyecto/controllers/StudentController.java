@@ -1,6 +1,7 @@
 package com.is1.proyecto.controllers;
 
 import static spark.Spark.*;
+import com.is1.proyecto.config.AccessControl;
 import com.is1.proyecto.services.StudentService;
 import org.javalite.activejdbc.Base;
 import spark.ModelAndView;
@@ -18,7 +19,12 @@ public class StudentController {
     private static final StudentService studentService = new StudentService();
 
     public static void register() {
-        get("/student/new", (req, res) -> {
+        AccessControl.requireRole("/estudiante/new", "ADMIN", "SECRETARIA");
+        AccessControl.requireRole("/estudiante/edit/*", "ADMIN", "SECRETARIA");
+        AccessControl.requireRoleForPrefix("/estudiante/*", "ESTUDIANTE",
+            "/estudiante/new", "/estudiante/edit/");
+
+        get("/estudiante/new", (req, res) -> {
             Map<String, Object> model = new HashMap<>();
             String successMessage = req.queryParams("message");
             String errorMessage = req.queryParams("error");
@@ -44,7 +50,7 @@ public class StudentController {
 return new ModelAndView(model, "student_form.mustache");
         }, new MustacheTemplateEngine());
 
-        post("/student/new", (req, res) -> {
+        post("/estudiante/new", (req, res) -> {
             String name = req.queryParams("name");
             String lastName = req.queryParams("lastname");
             String dni = req.queryParams("dni");
@@ -54,15 +60,15 @@ return new ModelAndView(model, "student_form.mustache");
             String planEstudioId = req.queryParams("plan_estudio_id");
 
             if (name == null || lastName == null || dni == null || email == null || legajo == null || tipoEstudiante == null || planEstudioId == null || planEstudioId.isBlank()) {
-                res.redirect("/student/new?error=" + URLEncoder.encode("Todos los campos (incluyendo legajo) son obligatorios.", StandardCharsets.UTF_8.toString()));
+                res.redirect("/estudiante/new?error=" + URLEncoder.encode("Todos los campos (incluyendo legajo) son obligatorios.", StandardCharsets.UTF_8.toString()));
                 return "";
             }
 
             try {
                 studentService.registrarEstudiante(name, lastName, dni, email, legajo, tipoEstudiante, Integer.parseInt(planEstudioId));
-                res.redirect("/student/new?message=" + URLEncoder.encode("Estudiante registrado exitosamente con clave 1234.", StandardCharsets.UTF_8.toString()));
+                res.redirect("/estudiante/new?message=" + URLEncoder.encode("Estudiante registrado exitosamente con clave 1234.", StandardCharsets.UTF_8.toString()));
             } catch (Exception e) {
-                res.redirect("/student/new?error=" + URLEncoder.encode("Error al registrar: " + e.getMessage(), StandardCharsets.UTF_8.toString()));
+                res.redirect("/estudiante/new?error=" + URLEncoder.encode("Error al registrar: " + e.getMessage(), StandardCharsets.UTF_8.toString()));
             }
             return "";
         });
@@ -194,22 +200,6 @@ return new ModelAndView(viewData, "inscripcion_materias.mustache");
         });
 
         get("/estudiante/edit/:id", (req, res) -> {
-            Boolean loggedIn = req.session().attribute("loggedIn");
-            String  userRole = req.session().attribute("userRole");
-            if (!Boolean.TRUE.equals(loggedIn)) { res.redirect("/login"); return null; }
-            if (!"ADMIN".equals(userRole) && !"SECRETARIA".equals(userRole)) {
-                res.status(403);
-                Map<String, Object> em = new HashMap<>();
-                em.put("errorMessage", "Acceso denegado.");
-                if (req.session().attribute("fotoPerfil") != null) {
-                    em.put("foto_perfil", req.session().attribute("fotoPerfil"));
-                } else {
-                    em.put("foto_perfil", "/img/default-avatar.png");
-                }
-                em.put("username", req.session().attribute("currentUserUsername"));
-                return new ModelAndView(em, "error.mustache");
-            }
-
             int estudianteId = Integer.parseInt(req.params("id"));
             Map<String, Object> model = studentService.getEstudianteParaEdicion(estudianteId);
 
@@ -235,17 +225,6 @@ return new ModelAndView(model, "estudiante_edit_form.mustache");
         }, new MustacheTemplateEngine());
 
         post("/estudiante/edit/:id", (req, res) -> {
-            Boolean loggedIn = req.session().attribute("loggedIn");
-            String  userRole = req.session().attribute("userRole");
-            if (!Boolean.TRUE.equals(loggedIn)) {
-                res.redirect("/login");
-                return null;
-            }
-            if (!"ADMIN".equals(userRole) && !"SECRETARIA".equals(userRole)) {
-                res.status(403);
-                return "Acceso denegado.";
-            }
-
             int estudianteId = Integer.parseInt(req.params("id"));
             String nombre = req.queryParams("nombre");
             String apellido = req.queryParams("apellido");

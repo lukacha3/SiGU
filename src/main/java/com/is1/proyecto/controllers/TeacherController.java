@@ -1,6 +1,7 @@
 package com.is1.proyecto.controllers;
 
 import static spark.Spark.*; // Importa los métodos estáticos principales de Spark (get, post, before, after, etc.).
+import com.is1.proyecto.config.AccessControl;
 import com.fasterxml.jackson.databind.ObjectMapper; // Utilidad para serializar/deserializar objetos Java a/desde JSON.
 import com.is1.proyecto.config.DBConfigSingleton; // Clase Singleton para la configuración de la base de datos.
 import com.is1.proyecto.models.Anuncio;
@@ -44,8 +45,15 @@ import java.util.Arrays;
 
 public class TeacherController {
     public static void register() {
+        AccessControl.requireRole("/docente/new", "ADMIN", "SECRETARIA");
+        AccessControl.requireRole("/docente/asignar-materia", "ADMIN", "SECRETARIA");
+        AccessControl.requireRole("/docente/edit/*", "ADMIN", "SECRETARIA");
+        AccessControl.requireRole("/docente/delete/*", "ADMIN", "SECRETARIA");
+        AccessControl.requireRoleForPrefix("/docente/*", "DOCENTE",
+            "/docente/new", "/docente/asignar-materia", "/docente/edit/", "/docente/delete/");
+
         get(
-                    "/teacher/new",
+                    "/docente/new",
                     (req, res) -> {
                         Map<String, Object> model = new HashMap<>();
 
@@ -80,7 +88,7 @@ return new ModelAndView(model, "teacher_from.mustache");
                 );
 
         get(
-                    "/teacher/assign-materia",
+                    "/docente/asignar-materia",
                     (req, res) -> {
                         String userRole = req.session().attribute("userRole");
                         if (
@@ -135,7 +143,7 @@ return new ModelAndView(model, "assign_materia_form.mustache");
                     new MustacheTemplateEngine()
                 );
 
-        post("/teacher/new", (req, res) -> {
+        post("/docente/new", (req, res) -> {
             String name = req.queryParams("teacher_name");
             String lastName = req.queryParams("teacher_lastname");
             String dni = req.queryParams("teacher_dni");
@@ -152,22 +160,22 @@ return new ModelAndView(model, "assign_materia_form.mustache");
                 service.createTeacher(name, lastName, dni, address, phone, legajo, cuil, email, especialidad, carreraId);
                 
                 String mensajeExito = "Docente " + name + " registrado con éxito.";
-                res.redirect("/teacher/new?message=" + URLEncoder.encode(mensajeExito, StandardCharsets.UTF_8.toString()));
+                res.redirect("/docente/new?message=" + URLEncoder.encode(mensajeExito, StandardCharsets.UTF_8.toString()));
             } catch (IllegalArgumentException e) {
-                res.redirect("/teacher/new?error=" + URLEncoder.encode(e.getMessage(), StandardCharsets.UTF_8.toString()));
+                res.redirect("/docente/new?error=" + URLEncoder.encode(e.getMessage(), StandardCharsets.UTF_8.toString()));
             } catch (Exception e) {
                 e.printStackTrace();
-                res.redirect("/teacher/new?error=" + URLEncoder.encode(e.getMessage(), StandardCharsets.UTF_8.toString()));
+                res.redirect("/docente/new?error=" + URLEncoder.encode(e.getMessage(), StandardCharsets.UTF_8.toString()));
             }
             return "";
         });
 
-        post("/teacher/assign-materia", (req, res) -> {
+        post("/docente/asignar-materia", (req, res) -> {
             String teacherIdParam = req.queryParams("teacher_id");
             String materiaIdParam = req.queryParams("materia_id");
 
             if (teacherIdParam == null || teacherIdParam.isEmpty() || materiaIdParam == null || materiaIdParam.isEmpty()) {
-                res.redirect("/teacher/assign-materia?error=" + URLEncoder.encode("Debes seleccionar un docente y una materia.", StandardCharsets.UTF_8.toString()));
+                res.redirect("/docente/asignar-materia?error=" + URLEncoder.encode("Debes seleccionar un docente y una materia.", StandardCharsets.UTF_8.toString()));
                 return "";
             }
 
@@ -178,14 +186,14 @@ return new ModelAndView(model, "assign_materia_form.mustache");
                 com.is1.proyecto.services.TeacherService service = new com.is1.proyecto.services.TeacherService();
                 service.assignMateria(teacherId, materiaId);
 
-                res.redirect("/teacher/assign-materia?message=" + URLEncoder.encode("Materia asignada correctamente al docente.", StandardCharsets.UTF_8.toString()));
+                res.redirect("/docente/asignar-materia?message=" + URLEncoder.encode("Materia asignada correctamente al docente.", StandardCharsets.UTF_8.toString()));
             } catch (NumberFormatException e) {
-                res.redirect("/teacher/assign-materia?error=" + URLEncoder.encode("Los identificadores de docente y materia deben ser numéricos.", StandardCharsets.UTF_8.toString()));
+                res.redirect("/docente/asignar-materia?error=" + URLEncoder.encode("Los identificadores de docente y materia deben ser numéricos.", StandardCharsets.UTF_8.toString()));
             } catch (IllegalArgumentException | IllegalStateException e) {
-                res.redirect("/teacher/assign-materia?error=" + URLEncoder.encode(e.getMessage(), StandardCharsets.UTF_8.toString()));
+                res.redirect("/docente/asignar-materia?error=" + URLEncoder.encode(e.getMessage(), StandardCharsets.UTF_8.toString()));
             } catch (Exception e) {
                 e.printStackTrace();
-                res.redirect("/teacher/assign-materia?error=" + URLEncoder.encode("Error interno al asignar la materia. Intente de nuevo.", StandardCharsets.UTF_8.toString()));
+                res.redirect("/docente/asignar-materia?error=" + URLEncoder.encode("Error interno al asignar la materia. Intente de nuevo.", StandardCharsets.UTF_8.toString()));
             }
             return "";
         });
@@ -530,26 +538,6 @@ return new ModelAndView(
                 );
 
         get("/docente/edit/:id", (req, res) -> {
-                Boolean loggedIn = req.session().attribute("loggedIn");
-                String  userRole = req.session().attribute("userRole");
-                if (!Boolean.TRUE.equals(loggedIn)) { res.redirect("/login"); return null; }
-                if (!"ADMIN".equals(userRole) && !"SECRETARIA".equals(userRole)) {
-                    res.status(403);
-                    Map<String, Object> em = new HashMap<>();
-                    em.put("errorMessage", "Acceso denegado.");
-                    if (req.session().attribute("loggedIn") != null && req.session().attribute("loggedIn").equals(true)) {
-    if (req.session().attribute("fotoPerfil") != null) {
-        em.put("foto_perfil", req.session().attribute("fotoPerfil"));
-    } else {
-        em.put("foto_perfil", "/img/default-avatar.png");
-    }
-    if (!em.containsKey("username") && req.session().attribute("currentUserUsername") != null) {
-        em.put("username", req.session().attribute("currentUserUsername"));
-    }
-}
-return new ModelAndView(em, "error.mustache");
-                }
-    
                 int docenteId = Integer.parseInt(req.params("id"));
                 List<Map> rows = Base.findAll(
                     "SELECT u.id, u.nombre, u.apellido, u.dni, u.direccion, u.telefono, " +
@@ -594,17 +582,6 @@ return new ModelAndView(model, "docente_edit_form.mustache");
             }, new MustacheTemplateEngine());
 
         post("/docente/edit/:id", (req, res) -> {
-            Boolean loggedIn = req.session().attribute("loggedIn");
-            String  userRole = req.session().attribute("userRole");
-            if (!Boolean.TRUE.equals(loggedIn)) {
-                res.redirect("/login");
-                return null;
-            }
-            if (!"ADMIN".equals(userRole) && !"SECRETARIA".equals(userRole)) {
-                res.status(403);
-                return "Acceso denegado.";
-            }
-
             int docenteId = Integer.parseInt(req.params("id"));
             String nombre      = req.queryParams("nombre");
             String apellido    = req.queryParams("apellido");
@@ -628,17 +605,6 @@ return new ModelAndView(model, "docente_edit_form.mustache");
         });
 
         post("/docente/delete/:id", (req, res) -> {
-            Boolean loggedIn = req.session().attribute("loggedIn");
-            String  userRole = req.session().attribute("userRole");
-            if (!Boolean.TRUE.equals(loggedIn)) {
-                res.redirect("/login");
-                return null;
-            }
-            if (!"ADMIN".equals(userRole) && !"SECRETARIA".equals(userRole)) {
-                res.status(403);
-                return "Acceso denegado.";
-            }
-
             int docenteId  = Integer.parseInt(req.params("id"));
             int myId = ((Number) req.session().attribute("userId")).intValue();
 

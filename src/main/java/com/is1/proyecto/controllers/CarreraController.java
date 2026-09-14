@@ -1,6 +1,7 @@
 package com.is1.proyecto.controllers;
 
 import static spark.Spark.*; // Importa los métodos estáticos principales de Spark (get, post, before, after, etc.).
+import com.is1.proyecto.config.AccessControl;
 import com.fasterxml.jackson.databind.ObjectMapper; // Utilidad para serializar/deserializar objetos Java a/desde JSON.
 import com.is1.proyecto.config.DBConfigSingleton; // Clase Singleton para la configuración de la base de datos.
 import com.is1.proyecto.models.Anuncio;
@@ -44,18 +45,11 @@ import java.util.Arrays;
 
 public class CarreraController {
     public static void register() {
+        AccessControl.requireRole("/carrera/new", "ADMIN", "SECRETARIA");
+
         get(
                     "/carrera/new",
                     (req, res) -> {
-                        String userRole = req.session().attribute("userRole");
-                        if (
-                            userRole == null ||
-                            (!userRole.equals("ADMIN") &&
-                                !userRole.equals("SECRETARIA"))
-                        ) {
-                            res.redirect("/dashboard");
-                            return null;
-                        }
                         Map<String, Object> model = new HashMap<>();
                         String successMessage = req.queryParams("message");
                         String errorMessage = req.queryParams("error");
@@ -84,15 +78,6 @@ return new ModelAndView(model, "carrera_form.mustache");
                 );
 
         post("/carrera/new", (req, res) -> {
-                    String userRole = req.session().attribute("userRole");
-                    if (
-                        userRole == null ||
-                        (!userRole.equals("ADMIN") && !userRole.equals("SECRETARIA"))
-                    ) {
-                        res.status(403);
-                        return "Acceso denegado.";
-                    }
-
                     // Captura de datos del frontend
                     String nombre = req.queryParams("nombre");
                     String duracionAnios = req.queryParams("duracion_anios");

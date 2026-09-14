@@ -1,6 +1,7 @@
 package com.is1.proyecto.controllers;
 
 import static spark.Spark.*; // Importa los métodos estáticos principales de Spark (get, post, before, after, etc.).
+import com.is1.proyecto.config.AccessControl;
 import com.fasterxml.jackson.databind.ObjectMapper; // Utilidad para serializar/deserializar objetos Java a/desde JSON.
 import com.is1.proyecto.config.DBConfigSingleton; // Clase Singleton para la configuración de la base de datos.
 import com.is1.proyecto.models.Anuncio;
@@ -44,19 +45,11 @@ import java.util.Arrays;
 
 public class MateriaController {
     public static void register() {
+        AccessControl.requireRole("/materia/new", "ADMIN", "SECRETARIA");
+
         get(
                     "/materia/new",
                     (req, res) -> {
-                        String userRole = req.session().attribute("userRole");
-                        if (
-                            userRole == null ||
-                            (!userRole.equals("ADMIN") &&
-                                !userRole.equals("SECRETARIA"))
-                        ) {
-                            res.redirect("/dashboard");
-                            return null;
-                        }
-
                         Map<String, Object> model = new HashMap<>();
 
                         // Consulta SQL limpia para armar el selector dinámico de Carreras con sus respectivos Planes Vigentes
@@ -100,15 +93,6 @@ return new ModelAndView(model, "materia_form.mustache");
                 );
 
         post("/materia/new", (req, res) -> {
-                    String userRole = req.session().attribute("userRole");
-                    if (
-                        userRole == null ||
-                        (!userRole.equals("ADMIN") && !userRole.equals("SECRETARIA"))
-                    ) {
-                        res.status(403);
-                        return "Acceso denegado.";
-                    }
-
                     // Captura de parámetros
                     String codigoStr = req.queryParams("codigo"); // Viene como texto desde el HTML
                     String planEstudioId = req.queryParams("plan_estudio_id");

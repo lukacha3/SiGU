@@ -136,39 +136,7 @@ public class App {
             }
         });
 
-        String[] adminRoutes = {"/student/new", "/student/delete/*", "/student/edit/*", 
-                                "/teacher/new", "/teacher/delete/*", "/teacher/edit/*", "/teacher/assign-materia",
-                                "/secretaria/*", "/carrera/new", "/materia/*", "/configuracion/*",
-                                "/estudiante/edit/*", "/docente/edit/*", "/docente/delete/*"};
-        for (String route : adminRoutes) {
-            before(route, (req, res) -> {
-                String role = req.session().attribute("userRole");
-                if (role == null || (!role.equals("ADMIN") && !role.equals("SECRETARIA"))) {
-                    res.redirect("/dashboard");
-                    halt();
-                }
-            });
-        }
 
-          // ── MIDDLEWARES DE DOCENTES ──────────────────────────────────────────────
-        before("/docente/*", (req, res) -> {
-            if (req.pathInfo().contains("/edit/") || req.pathInfo().contains("/delete/")) return; // Permite pasar al middleware de admin
-            String role = req.session().attribute("userRole");
-            if (role == null || !role.equals("DOCENTE")) {
-                res.redirect("/dashboard");
-                halt();
-            }
-        });
-
-        // ── MIDDLEWARES DE ESTUDIANTES ──────────────────────────────────────────
-        before("/estudiante/*", (req, res) -> {
-            if (req.pathInfo().contains("/edit/") || req.pathInfo().contains("/delete/")) return; // Permite pasar al middleware de admin
-            String role = req.session().attribute("userRole");
-            if (role == null || !role.equals("ESTUDIANTE")) {
-                res.redirect("/dashboard");
-                halt();
-            }
-        });
 
 
         // --- Rutas GET para renderizar formularios y páginas HTML ---
