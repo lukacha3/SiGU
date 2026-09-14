@@ -20,6 +20,7 @@ import com.is1.proyecto.models.SecretariaAcademica;
 import com.is1.proyecto.models.Student;
 import com.is1.proyecto.models.Teacher;
 import com.is1.proyecto.models.User; // Modelo de ActiveJDBC que representa la tabla 'users'.
+import com.is1.proyecto.models.Sesion;
 import com.mysql.cj.exceptions.StreamingNotifiable;
 import java.net.URLEncoder;
 import java.net.URLDecoder;
@@ -65,6 +66,11 @@ public class AuthController {
                 );
 
         get("/logout", (req, res) -> {
+                    Integer userId = req.session().attribute("userId");
+                    if (userId != null) {
+                        Sesion.delete("usuario_id = ?", userId);
+                    }
+
                     // Invalida completamente la sesión del usuario.
                     // Esto elimina todos los atributos guardados en la sesión y la marca como inválida.
                     // La cookie JSESSIONID en el navegador también será gestionada para invalidarse.
@@ -131,6 +137,16 @@ public class AuthController {
                             // --- Gestión de Sesión ---
                             req.session(true); // asegura que exista una sesión
                             req.raw().changeSessionId(); // previene session fixation
+
+                            String token = java.util.UUID.randomUUID().toString();
+                            Sesion.delete("usuario_id = ?", ac.getId());
+                            Sesion nuevaSesion = new Sesion();
+                            nuevaSesion.set("usuario_id", ac.getId());
+                            nuevaSesion.set("token", token);
+                            nuevaSesion.set("fecha_inicio", new java.sql.Timestamp(System.currentTimeMillis()));
+                            nuevaSesion.set("fecha_expiracion", new java.sql.Timestamp(System.currentTimeMillis() + 8 * 60 * 60 * 1000)); // 8 horas
+                            nuevaSesion.saveIt();
+                            req.session().attribute("sessionToken", token);
 
                             req.session().attribute("currentUserUsername", username);
                             req.session().attribute("userId", ac.getId());

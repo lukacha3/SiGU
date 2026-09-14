@@ -16,23 +16,29 @@ public final class DBConfigSingleton {
         // Forzamos el uso de MySQL ya que el proyecto fue migrado completamente.
         // Ignoramos System.getenv("DB_URL") porque tu terminal local seguía inyectando
         // una URL de SQLite antigua.
-        this.dbUrl = "jdbc:mysql://localhost:3306/proyecto_is_ii?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true";
+        this.dbUrl = "jdbc:mysql://127.0.0.1:3306/proyecto_is_ii?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true";
         this.driver = "com.mysql.cj.jdbc.Driver";
 
         String envUser = System.getenv("DB_USER");
         if (envUser == null || envUser.isBlank()) {
+            envUser = System.getProperty("DB_USER");
+        }
+        if (envUser == null || envUser.isBlank()) {
             throw new IllegalStateException(
-                "La variable de entorno DB_USER no está definida. " +
-                "Revisá el archivo .env.example para ver las variables requeridas."
+                "La variable DB_USER no está definida (ni como env var ni en .env). " +
+                "Revisá el archivo .env.example."
             );
         }
         this.user = envUser;
 
         String envPass = System.getenv("DB_PASS");
         if (envPass == null || envPass.isBlank()) {
+            envPass = System.getProperty("DB_PASS");
+        }
+        if (envPass == null || envPass.isBlank()) {
             throw new IllegalStateException(
-                "La variable de entorno DB_PASS no está definida. " +
-                "Revisá el archivo .env.example para ver las variables requeridas."
+                "La variable DB_PASS no está definida (ni como env var ni en .env). " +
+                "Revisá el archivo .env.example."
             );
         }
         this.pass = envPass;

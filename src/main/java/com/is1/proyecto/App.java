@@ -8,6 +8,7 @@ import static spark.Spark.*; // Importa los métodos estáticos principales de S
 // Importaciones necesarias para la aplicación Spark
 import com.fasterxml.jackson.databind.ObjectMapper; // Utilidad para serializar/deserializar objetos Java a/desde JSON.
 import com.is1.proyecto.config.DBConfigSingleton; // Clase Singleton para la configuración de la base de datos.
+import com.is1.proyecto.models.Sesion;
 // Importaciones de clases del proyecto
 // Importaciones específicas para ActiveJDBC (ORM para la base de datos)
 // Importaciones estándar de Java
@@ -36,7 +37,20 @@ public class App {
      * Aquí se configuran todas las rutas y filtros de Spark.
      */
     public static void main(String[] args) {
-        port(8080); // Configura el puerto en el que la aplicación Spark escuchará las peticiones (por defecto es 4567).
+        
+        io.github.cdimascio.dotenv.Dotenv dotenv = io.github.cdimascio.dotenv.Dotenv
+            .configure()
+            .ignoreIfMissing()   // no falla si no existe .env
+            .load();
+
+        dotenv.entries().forEach(entry -> {
+            if (System.getenv(entry.getKey()) == null) {
+                System.setProperty(entry.getKey(), entry.getValue());
+            }
+        });
+
+        port(8080); // Escucha en el puerto 8080.
+        // Habilita el manejo de archivos estáticos (CSS, JS, imágenes). (por defecto es 4567).
 
         // Obtener la instancia única del singleton de configuración de la base de datos.
         DBConfigSingleton dbConfig = DBConfigSingleton.getInstance();
@@ -61,6 +75,36 @@ public class App {
                     "Error al abrir conexión: " + e.getMessage()
                 );
                 halt(500, "{\"error\": \"Error interno del servidor DB\"}");
+            }
+        });
+
+        // --- Filtro de validación de sesión única concurrente ---
+        before((req, res) -> {
+            Boolean loggedIn = req.session().attribute("loggedIn");
+            if (Boolean.TRUE.equals(loggedIn)) {
+                String tokenEnSesion = req.session().attribute("sessionToken");
+                Integer userId = req.session().attribute("userId");
+
+                Sesion sesionActual = Sesion.findFirst("usuario_id = ?", userId);
+
+                boolean noExpirada = false;
+                Object expObj = sesionActual != null ? sesionActual.get("fecha_expiracion") : null;
+                if (expObj instanceof java.time.LocalDateTime) {
+                    noExpirada = ((java.time.LocalDateTime) expObj).isAfter(java.time.LocalDateTime.now());
+                } else if (expObj instanceof java.util.Date) {
+                    noExpirada = ((java.util.Date) expObj).after(new java.util.Date());
+                }
+
+                boolean tokenValido = sesionActual != null
+                    && sesionActual.getString("token").equals(tokenEnSesion)
+                    && noExpirada;
+
+                if (!tokenValido) {
+                    req.session().invalidate();
+                    res.redirect("/login?error=" + java.net.URLEncoder.encode(
+                        "Tu sesión expiró o se inició sesión desde otro lugar.", java.nio.charset.StandardCharsets.UTF_8));
+                    halt();
+                }
             }
         });
 

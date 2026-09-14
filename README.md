@@ -12,23 +12,9 @@ Antes de ejecutar el proyecto, debes configurar las credenciales de la base de d
 3. Levantá el servidor:
 
    ```bash
-   ./run.sh
+   mvn process-classes exec:java
    ```
 
-   Esto exporta las variables de `.env` y ejecuta `mvn process-classes exec:java` por vos.
+   Las variables de `.env` se cargan automáticamente al iniciar — no hace falta exportarlas a mano.
 
-   <details>
-   <summary>Alternativa manual (sin el script, o en Fish/Windows)</summary>
-
-   **Bash/Zsh:**
-   ```bash
-   export $(grep -v '^#' .env | xargs) && mvn process-classes exec:java
-   ```
-
-   **Fish:**
-   ```fish
-   env (grep -v '^#' .env | xargs) mvn process-classes exec:java
-   ```
-   </details>
-
-   > **Nota:** La tarea de VSCode incluida (`SiGU: Run Server`) se encargará de esto si las variables están configuradas a nivel sistema o si usas una extensión para cargar `.env`.
+   > **Nota:** La tarea de VSCode incluida (`SiGU: Run Server`) también funciona directo por este mismo motivo.
