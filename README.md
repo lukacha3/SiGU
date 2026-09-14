@@ -1,3 +1,5 @@
+![Tests](https://github.com/lukacha3/SiGU/actions/workflows/tests.yml/badge.svg)
+
 # SiGU - Sistema de Gestión Universitaria
 
 ## Instrucciones de Instalación y Ejecución
