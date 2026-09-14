@@ -194,6 +194,22 @@ return new ModelAndView(viewData, "inscripcion_materias.mustache");
         });
 
         get("/estudiante/edit/:id", (req, res) -> {
+            Boolean loggedIn = req.session().attribute("loggedIn");
+            String  userRole = req.session().attribute("userRole");
+            if (!Boolean.TRUE.equals(loggedIn)) { res.redirect("/login"); return null; }
+            if (!"ADMIN".equals(userRole) && !"SECRETARIA".equals(userRole)) {
+                res.status(403);
+                Map<String, Object> em = new HashMap<>();
+                em.put("errorMessage", "Acceso denegado.");
+                if (req.session().attribute("fotoPerfil") != null) {
+                    em.put("foto_perfil", req.session().attribute("fotoPerfil"));
+                } else {
+                    em.put("foto_perfil", "/img/default-avatar.png");
+                }
+                em.put("username", req.session().attribute("currentUserUsername"));
+                return new ModelAndView(em, "error.mustache");
+            }
+
             int estudianteId = Integer.parseInt(req.params("id"));
             Map<String, Object> model = studentService.getEstudianteParaEdicion(estudianteId);
 
@@ -219,6 +235,17 @@ return new ModelAndView(model, "estudiante_edit_form.mustache");
         }, new MustacheTemplateEngine());
 
         post("/estudiante/edit/:id", (req, res) -> {
+            Boolean loggedIn = req.session().attribute("loggedIn");
+            String  userRole = req.session().attribute("userRole");
+            if (!Boolean.TRUE.equals(loggedIn)) {
+                res.redirect("/login");
+                return null;
+            }
+            if (!"ADMIN".equals(userRole) && !"SECRETARIA".equals(userRole)) {
+                res.status(403);
+                return "Acceso denegado.";
+            }
+
             int estudianteId = Integer.parseInt(req.params("id"));
             String nombre = req.queryParams("nombre");
             String apellido = req.queryParams("apellido");

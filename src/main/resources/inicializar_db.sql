@@ -107,7 +107,7 @@ INSERT INTO Inscripcion_Parcial (usuario_id, anuncio_id) VALUES
 -- materia 101 (Matemática Discreta)  → fgarcia(3)=REGULAR, jmartinez(4)=LIBRE pueden rendir
 -- materia 202 (Bases de Datos)       → docente cdocente(5) la dicta
 -- materia 301 (Ingeniería de Software) → docente cdocente(5) la dicta
-INSERT INTO mesas_examen (id, materia_codigo, fecha) VALUES
+INSERT IGNORE INTO mesas_examen (id, materia_codigo, fecha) VALUES
 (1, 101, '2026-11-20'),
 (2, 101, '2026-12-05'),
 (3, 202, '2026-11-22'),
@@ -116,6 +116,6 @@ INSERT INTO mesas_examen (id, materia_codigo, fecha) VALUES
 -- Inserción de Inscripciones a Exámenes
 -- fgarcia(3) ya inscripto en la mesa 1 de Matemática Discreta
 -- jmartinez(4) ya inscripto en la mesa 2 de Matemática Discreta
-INSERT INTO inscripciones_examen (usuario_id, mesa_id) VALUES
+INSERT IGNORE INTO inscripciones_examen (usuario_id, mesa_id) VALUES
 (3, 1),
 (4, 2);

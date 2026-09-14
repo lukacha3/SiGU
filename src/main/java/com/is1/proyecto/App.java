@@ -86,7 +86,8 @@ public class App {
 
         String[] adminRoutes = {"/student/new", "/student/delete/*", "/student/edit/*", 
                                 "/teacher/new", "/teacher/delete/*", "/teacher/edit/*", "/teacher/assign-materia",
-                                "/secretaria/*", "/carrera/new", "/materia/*", "/configuracion/*"};
+                                "/secretaria/*", "/carrera/new", "/materia/*", "/configuracion/*",
+                                "/estudiante/edit/*"};
         for (String route : adminRoutes) {
             before(route, (req, res) -> {
                 String role = req.session().attribute("userRole");

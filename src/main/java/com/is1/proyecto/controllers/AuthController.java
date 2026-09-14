@@ -57,16 +57,9 @@ public class AuthController {
                             model.put("successMessage", successMessage);
                         }
                         if (req.session().attribute("loggedIn") != null && req.session().attribute("loggedIn").equals(true)) {
-    if (req.session().attribute("fotoPerfil") != null) {
-        model.put("foto_perfil", req.session().attribute("fotoPerfil"));
-    } else {
-        model.put("foto_perfil", "/img/default-avatar.png");
-    }
-    if (!model.containsKey("username") && req.session().attribute("currentUserUsername") != null) {
-        model.put("username", req.session().attribute("currentUserUsername"));
-    }
-}
-return new ModelAndView(model, "login.mustache");
+                            model.put("foto_perfil", req.session().attribute("fotoPerfil"));
+                        }
+                        return new ModelAndView(model, "login.mustache");
                     },
                     new MustacheTemplateEngine()
                 );
@@ -98,16 +91,9 @@ return new ModelAndView(model, "login.mustache");
                             model.put("successMessage", successMessage);
                         }
                         if (req.session().attribute("loggedIn") != null && req.session().attribute("loggedIn").equals(true)) {
-    if (req.session().attribute("fotoPerfil") != null) {
-        model.put("foto_perfil", req.session().attribute("fotoPerfil"));
-    } else {
-        model.put("foto_perfil", "/img/default-avatar.png");
-    }
-    if (!model.containsKey("username") && req.session().attribute("currentUserUsername") != null) {
-        model.put("username", req.session().attribute("currentUserUsername"));
-    }
-}
-return new ModelAndView(model, "login.mustache");
+                            model.put("foto_perfil", req.session().attribute("fotoPerfil"));
+                        }
+                        return new ModelAndView(model, "login.mustache");
                     },
                     new MustacheTemplateEngine()
                 );
@@ -131,17 +117,7 @@ return new ModelAndView(model, "login.mustache");
                                 "errorMessage",
                                 "El nombre de usuario y la contraseña son requeridos."
                             );
-                            if (req.session().attribute("loggedIn") != null && req.session().attribute("loggedIn").equals(true)) {
-    if (req.session().attribute("fotoPerfil") != null) {
-        model.put("foto_perfil", req.session().attribute("fotoPerfil"));
-    } else {
-        model.put("foto_perfil", "/img/default-avatar.png");
-    }
-    if (!model.containsKey("username") && req.session().attribute("currentUserUsername") != null) {
-        model.put("username", req.session().attribute("currentUserUsername"));
-    }
-}
-return new ModelAndView(model, "login.mustache");
+                            return new ModelAndView(model, "login.mustache");
                         }
 
                         // 2. Búsqueda en DB
@@ -181,17 +157,7 @@ return new ModelAndView(model, "login.mustache");
                                 "errorMessage",
                                 "Usuario o contraseña incorrectos."
                             );
-                            if (req.session().attribute("loggedIn") != null && req.session().attribute("loggedIn").equals(true)) {
-    if (req.session().attribute("fotoPerfil") != null) {
-        model.put("foto_perfil", req.session().attribute("fotoPerfil"));
-    } else {
-        model.put("foto_perfil", "/img/default-avatar.png");
-    }
-    if (!model.containsKey("username") && req.session().attribute("currentUserUsername") != null) {
-        model.put("username", req.session().attribute("currentUserUsername"));
-    }
-}
-return new ModelAndView(model, "login.mustache");
+                            return new ModelAndView(model, "login.mustache");
                         }
                     },
                     new MustacheTemplateEngine()
