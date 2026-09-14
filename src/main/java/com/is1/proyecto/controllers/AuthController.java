@@ -44,6 +44,7 @@ import java.nio.file.StandardCopyOption;
 import java.util.Arrays;
 
 public class AuthController {
+    private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(AuthController.class);
     public static void register(ObjectMapper objectMapper) {
         get(
                     "/login",
@@ -76,7 +77,7 @@ public class AuthController {
                     // La cookie JSESSIONID en el navegador también será gestionada para invalidarse.
                     req.session().invalidate();
 
-                    System.out.println("DEBUG: Sesión cerrada. Redirigiendo a /login.");
+                    logger.info("Sesión cerrada. Redirigiendo a /login.");
 
                     // Redirige al usuario a la página de login con un mensaje de éxito.
                     res.redirect("/");
@@ -156,9 +157,7 @@ public class AuthController {
                             req.session().attribute("userRole", ac.get("nivel_acceso"));
                             req.session().attribute("fotoPerfil", ac.get("foto_perfil") != null ? ac.get("foto_perfil") : "/img/default-avatar.png");
 
-                            System.out.println(
-                                "DEBUG: Login exitoso para: " + username
-                            );
+                            logger.info("Login exitoso para: {}", username);
 
                             // PATRÓN PRG: Redirigimos al dashboard (GET) en lugar de renderizarlo aquí
                             res.redirect("/dashboard");
@@ -166,9 +165,7 @@ public class AuthController {
                         } else {
                             // Fallo de autenticación
                             res.status(401);
-                            System.out.println(
-                                "DEBUG: Intento de login fallido para: " + username
-                            );
+                            logger.warn("Intento de login fallido para: {}", username);
                             model.put(
                                 "errorMessage",
                                 "Usuario o contraseña incorrectos."

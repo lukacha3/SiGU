@@ -19,14 +19,16 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 
-
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Clase principal de la aplicación Spark.
  * Configura las rutas, filtros y el inicio del servidor web.
  */
 public class App {
+
+    private static final Logger logger = LoggerFactory.getLogger(App.class);
 
     // Instancia estática y final de ObjectMapper para la serialización/deserialización JSON.
     // Se inicializa una sola vez para ser reutilizada en toda la aplicación.
@@ -63,7 +65,7 @@ public class App {
         try {
             java.nio.file.Files.createDirectories(java.nio.file.Paths.get(UPLOAD_DIR));
         } catch (java.io.IOException e) {
-            System.err.println("No se pudo crear la carpeta de imágenes: " + e.getMessage());
+            logger.error("No se pudo crear la carpeta de imágenes: {}", e.getMessage());
         }
         staticFiles.externalLocation(STATIC_DIR);
 
@@ -73,9 +75,7 @@ public class App {
             try {
                 dbConfig.openConnection(); // Usamos el método encapsulado del Singleton
             } catch (Exception e) {
-                System.err.println(
-                    "Error al abrir conexión: " + e.getMessage()
-                );
+                logger.error("Error al abrir conexión: {}", e.getMessage());
                 halt(500, "{\"error\": \"Error interno del servidor DB\"}");
             }
         });
@@ -122,9 +122,7 @@ public class App {
             try {
                 dbConfig.closeConnection(); // Usamos el método encapsulado
             } catch (Exception e) {
-                System.err.println(
-                    "Error al cerrar conexión: " + e.getMessage()
-                );
+                logger.error("Error al cerrar conexión: {}", e.getMessage());
             }
         });
 
