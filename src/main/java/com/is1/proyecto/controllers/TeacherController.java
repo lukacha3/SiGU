@@ -21,6 +21,7 @@ import com.is1.proyecto.models.SecretariaAcademica;
 import com.is1.proyecto.models.Student;
 import com.is1.proyecto.models.Teacher;
 import com.is1.proyecto.models.User; // Modelo de ActiveJDBC que representa la tabla 'users'.
+import com.is1.proyecto.services.TeacherService;
 import com.mysql.cj.exceptions.StreamingNotifiable;
 import java.net.URLEncoder;
 import java.net.URLDecoder;
@@ -44,6 +45,7 @@ import java.nio.file.StandardCopyOption;
 import java.util.Arrays;
 
 public class TeacherController {
+    private static final TeacherService teacherService = new TeacherService();
     public static void register() {
         AccessControl.requireRole("/docente/new", "ADMIN", "SECRETARIA");
         AccessControl.requireRole("/docente/asignar-materia", "ADMIN", "SECRETARIA");
@@ -156,8 +158,7 @@ return new ModelAndView(model, "assign_materia_form.mustache");
             String carreraId = req.queryParams("carrera_id");
 
             try {
-                com.is1.proyecto.services.TeacherService service = new com.is1.proyecto.services.TeacherService();
-                service.createTeacher(name, lastName, dni, address, phone, legajo, cuil, email, especialidad, carreraId);
+                teacherService.createTeacher(name, lastName, dni, address, phone, legajo, cuil, email, especialidad, carreraId);
                 
                 String mensajeExito = "Docente " + name + " registrado con éxito.";
                 res.redirect("/docente/new?message=" + URLEncoder.encode(mensajeExito, StandardCharsets.UTF_8.toString()));
@@ -183,8 +184,7 @@ return new ModelAndView(model, "assign_materia_form.mustache");
                 int teacherId = Integer.parseInt(teacherIdParam);
                 int materiaId = Integer.parseInt(materiaIdParam);
 
-                com.is1.proyecto.services.TeacherService service = new com.is1.proyecto.services.TeacherService();
-                service.assignMateria(teacherId, materiaId);
+                teacherService.assignMateria(teacherId, materiaId);
 
                 res.redirect("/docente/asignar-materia?message=" + URLEncoder.encode("Materia asignada correctamente al docente.", StandardCharsets.UTF_8.toString()));
             } catch (NumberFormatException e) {
@@ -243,14 +243,7 @@ return new ModelAndView(model, "assign_materia_form.mustache");
                         int teacherId = teacher.getInteger("usuario_id");
 
                         // Buscamos las materias asignadas vía Docente_Materia
-                        List<Map> materiasRaw = Base.findAll(
-                            "SELECT m.codigo, m.nombre, m.anio_cursada " +
-                                "FROM Materia m " +
-                                "JOIN Docente_Materia dm ON m.codigo = dm.materia_id " +
-                                "WHERE dm.teacher_id = ? " +
-                                "ORDER BY m.anio_cursada ASC, m.nombre ASC",
-                            teacherId
-                        );
+                        List<Map> materiasRaw = teacherService.getTeacherMaterias(teacherId);
 
                         model.put("materias", materiasRaw);
                         model.put("sinMaterias", materiasRaw.isEmpty());
@@ -330,122 +323,13 @@ return new ModelAndView(model, "docente_materias.mustache");
                             return null;
                         }
 
-                        // Periodo vigente de la materia
-                        MateriaPeriodo periodo = MateriaPeriodo.findFirst(
-                            "materia_codigo = ?",
-                            materiaId
-                        );
-                        String periodoLabel = "";
-                        if (periodo != null) {
-                            String raw = periodo.getString("tipo_cuatrimestre");
-                            if ("PRIMER_CUATRIMESTRE".equals(raw)) periodoLabel =
-                                "I Cuatrimestre";
-                            else if ("SEGUNDO_CUATRIMESTRE".equals(raw)) periodoLabel =
-                                "II Cuatrimestre";
-                            else if ("ANUAL".equals(raw)) periodoLabel = "Anual";
-                            else if ("VERANO".equals(raw)) periodoLabel = "Verano";
+                        Map<String, Object> model;
+                        try {
+                            model = teacherService.getMateriaPanelData(teacherId, materiaId);
+                        } catch (SecurityException | IllegalArgumentException e) {
+                            res.redirect("/docente/materias?error=" + URLEncoder.encode(e.getMessage(), StandardCharsets.UTF_8.toString()));
+                            return null;
                         }
-
-                        // Alumnos para el selector de notas (sólo inscriptos o regulares)
-                        List<Map> inscriptosRows = Base.findAll(
-                            "SELECT u.id as usuario_id, u.nombre, u.apellido, s.legajo " +
-                                "FROM users u " +
-                                "JOIN student s ON u.id = s.usuario_id " +
-                                "JOIN Estado_Academico ea ON s.usuario_id = ea.usuario_id " +
-                                "WHERE ea.materia_codigo = ? AND ea.estado IN ('INSCRIPTO', 'REGULAR')",
-                            materiaId
-                        );
-
-                        List<Map<String, Object>> alumnosOptions = new ArrayList<>();
-                        for (Map row : inscriptosRows) {
-                            String label =
-                                row.get("apellido") +
-                                ", " +
-                                row.get("nombre") +
-                                " — " +
-                                row.get("legajo");
-                            Map<String, Object> opt = new HashMap<>();
-                            opt.put("id", row.get("usuario_id"));
-                            opt.put("label", label);
-                            alumnosOptions.add(opt);
-                        }
-
-                        Map<String, Object> model = new HashMap<>();
-                        model.put("codigoMateria", materiaId);
-                        model.put("nombreMateria", materia.getString("nombre"));
-                        model.put("anioMateria", materia.getInteger("anio_cursada"));
-                        model.put("periodoMateria", periodoLabel);
-                        model.put("alumnos", alumnosOptions);
-                        model.put("hayAlumnos", !alumnosOptions.isEmpty());
-
-                        List<Map<String, Object>> anuncios = new ArrayList<>();
-                        if (periodo != null) {
-                            List<Map> anunciosDB = Base.findAll(
-                                "SELECT id, tipo, titulo, contenido, fecha_examen FROM Anuncio WHERE materia_periodo_id = ? ORDER BY fecha_creacion DESC",
-                                periodo.getId()
-                            );
-                            for (Map a : anunciosDB) {
-                                Map<String, Object> anuncioMap = new HashMap<>();
-                                anuncioMap.put("id", a.get("id"));
-                                anuncioMap.put("tipo", a.get("tipo"));
-                                anuncioMap.put("titulo", a.get("titulo"));
-                                anuncioMap.put("contenido", a.get("contenido"));
-                                anuncioMap.put("fechaExamen", a.get("fecha_examen"));
-                                anuncioMap.put(
-                                    "esExamen",
-                                    "EXAMEN".equals(a.get("tipo"))
-                                );
-                                if ("EXAMEN".equals(a.get("tipo"))) {
-                                    List<Map> conteoRows = Base.findAll(
-                                        "SELECT COUNT(*) AS total FROM Inscripcion_Parcial WHERE anuncio_id = ?",
-                                        ((Number) a.get("id")).intValue()
-                                    );
-                                    int total = conteoRows.isEmpty()
-                                        ? 0
-                                        : (
-                                              (Number) conteoRows.get(0).get("total")
-                                          ).intValue();
-                                    anuncioMap.put("inscriptosCount", total);
-                                }
-                                anuncios.add(anuncioMap);
-                            }
-                        }
-                        model.put("anuncios", anuncios);
-
-                        // Anuncios del período con contador de inscriptos a parciales
-                        List<Map<String, Object>> anunciosConConteo = new ArrayList<>();
-                        if (periodo != null) {
-                            List<Map> anunciosDB = Base.findAll(
-                                "SELECT id, tipo, titulo, contenido, fecha_examen FROM Anuncio WHERE materia_periodo_id = ? ORDER BY fecha_creacion DESC",
-                                periodo.getId()
-                            );
-                            for (Map a : anunciosDB) {
-                                Map<String, Object> anuncioMap = new HashMap<>();
-                                anuncioMap.put("id", a.get("id"));
-                                anuncioMap.put("tipo", a.get("tipo"));
-                                anuncioMap.put("titulo", a.get("titulo"));
-                                anuncioMap.put("contenido", a.get("contenido"));
-                                anuncioMap.put("fechaExamen", a.get("fecha_examen"));
-                                anuncioMap.put(
-                                    "esExamen",
-                                    "EXAMEN".equals(a.get("tipo"))
-                                );
-                                if ("EXAMEN".equals(a.get("tipo"))) {
-                                    List<Map> conteoRows = Base.findAll(
-                                        "SELECT COUNT(*) AS total FROM Inscripcion_Parcial WHERE anuncio_id = ?",
-                                        ((Number) a.get("id")).intValue()
-                                    );
-                                    int total = conteoRows.isEmpty()
-                                        ? 0
-                                        : (
-                                              (Number) conteoRows.get(0).get("total")
-                                          ).intValue();
-                                    anuncioMap.put("inscriptosCount", total);
-                                }
-                                anunciosConConteo.add(anuncioMap);
-                            }
-                        }
-                        model.put("anuncios", anunciosConConteo);
 
                         String successMessage = req.queryParams("message");
                         String errorMessage = req.queryParams("error");
@@ -483,8 +367,7 @@ return new ModelAndView(
             String aula = req.queryParams("aula");
 
             try {
-                com.is1.proyecto.services.TeacherService service = new com.is1.proyecto.services.TeacherService();
-                service.assignAula(teacherId, materiaId, aula);
+                teacherService.assignAula(teacherId, materiaId, aula);
                 res.redirect("/docente/materia/" + materiaId + "?message=" + URLEncoder.encode("Aula asignada correctamente.", StandardCharsets.UTF_8.toString()));
             } catch (SecurityException | IllegalArgumentException | IllegalStateException e) {
                 res.redirect("/docente/materia/" + materiaId + "?error=" + URLEncoder.encode(e.getMessage(), StandardCharsets.UTF_8.toString()));
@@ -503,8 +386,7 @@ return new ModelAndView(
             String fecha = req.queryParams("fecha_examen");
 
             try {
-                com.is1.proyecto.services.TeacherService service = new com.is1.proyecto.services.TeacherService();
-                service.createMesaExamen(teacherId, materiaId, fecha);
+                teacherService.createMesaExamen(teacherId, materiaId, fecha);
                 res.redirect("/docente/materia/" + materiaId + "?message=" + URLEncoder.encode("Mesa de Examen creada correctamente.", StandardCharsets.UTF_8.toString()));
             } catch (SecurityException | IllegalArgumentException e) {
                 res.redirect("/docente/materia/" + materiaId + "?error=" + URLEncoder.encode(e.getMessage(), StandardCharsets.UTF_8.toString()));
@@ -539,19 +421,12 @@ return new ModelAndView(
 
         get("/docente/edit/:id", (req, res) -> {
                 int docenteId = Integer.parseInt(req.params("id"));
-                List<Map> rows = Base.findAll(
-                    "SELECT u.id, u.nombre, u.apellido, u.dni, u.direccion, u.telefono, " +
-                    "       u.nombre_usuario, t.legajo_docente, t.cuil, t.email, t.especialidad " +
-                    "FROM users u JOIN teacher t ON t.usuario_id = u.id " +
-                    "WHERE u.id = ? AND u.nivel_acceso = 'DOCENTE'",
-                    docenteId
-                );
-                if (rows.isEmpty()) {
+                Map d = teacherService.getTeacherForEdit(docenteId);
+                if (d == null) {
                     res.redirect("/configuracion?error=" + URLEncoder.encode(
                         "Docente no encontrado.", StandardCharsets.UTF_8.toString()));
                     return null;
                 }
-                Map d = rows.get(0);
                 Map<String, Object> model = new HashMap<>();
                 model.put("id",             ((Number) d.get("id")).intValue());
                 model.put("nombre",         d.get("nombre"));
@@ -592,8 +467,7 @@ return new ModelAndView(model, "docente_edit_form.mustache");
             String especialidad = req.queryParams("especialidad");
 
             try {
-                com.is1.proyecto.services.TeacherService service = new com.is1.proyecto.services.TeacherService();
-                service.updateTeacher(docenteId, nombre, apellido, dni, direccion, telefono, email, especialidad);
+                teacherService.updateTeacher(docenteId, nombre, apellido, dni, direccion, telefono, email, especialidad);
                 res.redirect("/configuracion?message=" + URLEncoder.encode("Docente actualizado correctamente.", StandardCharsets.UTF_8.toString()) + "#docentes");
             } catch (IllegalArgumentException e) {
                 res.redirect("/docente/edit/" + docenteId + "?error=" + URLEncoder.encode(e.getMessage(), StandardCharsets.UTF_8.toString()));
@@ -609,8 +483,7 @@ return new ModelAndView(model, "docente_edit_form.mustache");
             int myId = ((Number) req.session().attribute("userId")).intValue();
 
             try {
-                com.is1.proyecto.services.TeacherService service = new com.is1.proyecto.services.TeacherService();
-                service.deleteTeacher(docenteId, myId);
+                teacherService.deleteTeacher(docenteId, myId);
                 res.redirect("/configuracion?message=" + URLEncoder.encode("Docente eliminado correctamente.", StandardCharsets.UTF_8.toString()) + "#docentes");
             } catch (SecurityException | IllegalArgumentException e) {
                 res.redirect("/configuracion?error=" + URLEncoder.encode(e.getMessage(), StandardCharsets.UTF_8.toString()) + "#docentes");

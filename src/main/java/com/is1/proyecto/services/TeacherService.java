@@ -175,4 +175,82 @@ public class TeacherService {
         mesa.set("fecha", fecha);
         mesa.saveIt();
     }
+
+    public Map<String, Object> getMateriaPanelData(int teacherId, int materiaId) throws Exception {
+        DocenteMateria asignacion = DocenteMateria.findFirst("teacher_id = ? AND materia_id = ?", teacherId, materiaId);
+        if (asignacion == null) {
+            throw new SecurityException("No tenés acceso a esa materia.");
+        }
+
+        Materia materia = Materia.findFirst("codigo = ?", materiaId);
+        if (materia == null) {
+            throw new IllegalArgumentException("Materia no encontrada.");
+        }
+
+        MateriaPeriodo periodo = MateriaPeriodo.findFirst("materia_codigo = ?", materiaId);
+        String periodoLabel = "";
+        if (periodo != null) {
+            String raw = periodo.getString("tipo_cuatrimestre");
+            if ("PRIMER_CUATRIMESTRE".equals(raw)) periodoLabel = "I Cuatrimestre";
+            else if ("SEGUNDO_CUATRIMESTRE".equals(raw)) periodoLabel = "II Cuatrimestre";
+            else if ("ANUAL".equals(raw)) periodoLabel = "Anual";
+            else if ("VERANO".equals(raw)) periodoLabel = "Verano";
+        }
+
+        List<Map> inscriptosRows = Base.findAll(
+            "SELECT u.id as usuario_id, u.nombre, u.apellido, s.legajo " +
+            "FROM users u " +
+            "JOIN student s ON u.id = s.usuario_id " +
+            "JOIN Estado_Academico ea ON s.usuario_id = ea.usuario_id " +
+            "WHERE ea.materia_codigo = ? AND ea.estado IN ('INSCRIPTO', 'REGULAR')",
+            materiaId
+        );
+        List<Map<String, Object>> alumnosOptions = new ArrayList<>();
+        for (Map row : inscriptosRows) {
+            String label = row.get("apellido") + ", " + row.get("nombre") + " — " + row.get("legajo");
+            Map<String, Object> opt = new HashMap<>();
+            opt.put("id", row.get("usuario_id"));
+            opt.put("label", label);
+            alumnosOptions.add(opt);
+        }
+
+        // Anuncios del período con contador de inscriptos a parciales.
+        // (Antes esto se armaba dos veces con la misma query en el controlador — se
+        // dejó una sola pasada acá.)
+        List<Map<String, Object>> anuncios = new ArrayList<>();
+        if (periodo != null) {
+            List<Map> anunciosDB = Base.findAll(
+                "SELECT id, tipo, titulo, contenido, fecha_examen FROM Anuncio WHERE materia_periodo_id = ? ORDER BY fecha_creacion DESC",
+                periodo.getId()
+            );
+            for (Map a : anunciosDB) {
+                Map<String, Object> anuncioMap = new HashMap<>();
+                anuncioMap.put("id", a.get("id"));
+                anuncioMap.put("tipo", a.get("tipo"));
+                anuncioMap.put("titulo", a.get("titulo"));
+                anuncioMap.put("contenido", a.get("contenido"));
+                anuncioMap.put("fechaExamen", a.get("fecha_examen"));
+                anuncioMap.put("esExamen", "EXAMEN".equals(a.get("tipo")));
+                if ("EXAMEN".equals(a.get("tipo"))) {
+                    List<Map> conteoRows = Base.findAll(
+                        "SELECT COUNT(*) AS total FROM Inscripcion_Parcial WHERE anuncio_id = ?",
+                        ((Number) a.get("id")).intValue()
+                    );
+                    int total = conteoRows.isEmpty() ? 0 : ((Number) conteoRows.get(0).get("total")).intValue();
+                    anuncioMap.put("inscriptosCount", total);
+                }
+                anuncios.add(anuncioMap);
+            }
+        }
+
+        Map<String, Object> resultado = new HashMap<>();
+        resultado.put("codigoMateria", materiaId);
+        resultado.put("nombreMateria", materia.getString("nombre"));
+        resultado.put("anioMateria", materia.getInteger("anio_cursada"));
+        resultado.put("periodoMateria", periodoLabel);
+        resultado.put("alumnos", alumnosOptions);
+        resultado.put("hayAlumnos", !alumnosOptions.isEmpty());
+        resultado.put("anuncios", anuncios);
+        return resultado;
+    }
 }
