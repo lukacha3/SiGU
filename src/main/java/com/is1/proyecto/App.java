@@ -87,17 +87,23 @@ public class App {
 
                 Sesion sesionActual = Sesion.findFirst("usuario_id = ?", userId);
 
+                boolean existe = sesionActual != null;
+                boolean tokenCoincide = existe && sesionActual.getString("token").equals(tokenEnSesion);
+
                 boolean noExpirada = false;
-                Object expObj = sesionActual != null ? sesionActual.get("fecha_expiracion") : null;
+                Object expObj = existe ? sesionActual.get("fecha_expiracion") : null;
                 if (expObj instanceof java.time.LocalDateTime) {
                     noExpirada = ((java.time.LocalDateTime) expObj).isAfter(java.time.LocalDateTime.now());
                 } else if (expObj instanceof java.util.Date) {
                     noExpirada = ((java.util.Date) expObj).after(new java.util.Date());
                 }
+                boolean vencida = existe && !noExpirada;
 
-                boolean tokenValido = sesionActual != null
-                    && sesionActual.getString("token").equals(tokenEnSesion)
-                    && noExpirada;
+                if (existe && vencida) {
+                    sesionActual.delete(); // Limpieza lazy
+                }
+
+                boolean tokenValido = existe && tokenCoincide && !vencida;
 
                 if (!tokenValido) {
                     req.session().invalidate();
