@@ -1,4 +1,4 @@
-USE proyecto_is_ii;
+USE sigu;
 
 INSERT INTO Carrera (id, nombre, duracion_anios, titulo_otorgado) VALUES
 (1, 'Analista en Computación', 3, 'Analista en Computación'),

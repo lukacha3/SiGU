@@ -9,8 +9,8 @@ por materia y gestión de usuarios.
 
 Nació como proyecto de la cátedra de Ingeniería de Software I y II, y después lo
 seguí trabajando por mi cuenta: corregí bugs reales, cerré vulnerabilidades de
-control de acceso, armé una suite de tests, y reorganizé la arquitectura
-(controladores → capa de servicios) — el historial de commits documentan ese proceso.
+control de acceso, armé tests, y reorganizé la arquitectura
+(controladores → capa de servicios).
 
 ## Funcionalidades por rol
 
@@ -53,17 +53,12 @@ control de acceso, armé una suite de tests, y reorganizé la arquitectura
 ## Arquitectura
 
 ```text
-src/main/java/com/is1/proyecto/
+src/main/java/com/sigu/
 ├── controllers/   # Rutas HTTP (Spark), manejo de sesión/request
 ├── services/       # Lógica de negocio (correlatividades, notas, docentes)
 ├── models/         # Modelos ActiveJDBC (mapeo a tablas)
 └── config/         # Configuración de DB y control de acceso declarativo
 ```
-
-El control de acceso por rol se declara junto a cada ruta en el controlador que
-la define (`AccessControl.requireRole(...)`), no en un lugar centralizado
-desconectado del código que protege — así una ruta nueva no puede quedar
-desprotegida por accidente.
 
 ## Instalación y ejecución local
 
@@ -77,8 +72,8 @@ cp .env.example .env
    MySQL/MariaDB local.
 3. Creá la base de datos y cargá el schema (ejemplo con el cliente `mysql`):
 ```bash
-mysql -u <tu_usuario> -p -e "CREATE DATABASE IF NOT EXISTS proyecto_is_ii"
-mysql -u <tu_usuario> -p proyecto_is_ii < src/main/resources/scheme.sql
+mysql -u <tu_usuario> -p -e "CREATE DATABASE IF NOT EXISTS sigu"
+mysql -u <tu_usuario> -p sigu < src/main/resources/scheme.sql
 ```
 4. Levantá el servidor:
 ```bash

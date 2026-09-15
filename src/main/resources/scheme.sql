@@ -1,6 +1,6 @@
 SET FOREIGN_KEY_CHECKS = 0;
-CREATE DATABASE IF NOT EXISTS proyecto_is_ii;
-USE proyecto_is_ii;
+CREATE DATABASE IF NOT EXISTS sigu;
+USE sigu;
 DROP TABLE IF EXISTS sesion;
 DROP TABLE IF EXISTS gestorSistema;
 DROP TABLE IF EXISTS secretariaAcademica;
