@@ -21,7 +21,7 @@ DROP TABLE IF EXISTS Materia;
 DROP TABLE IF EXISTS Plan_Estudio;
 DROP TABLE IF EXISTS Carrera;
 DROP TABLE IF EXISTS inscripciones_examen;
-DROP TABLE IF EXISTS mesa_examen;
+DROP TABLE IF EXISTS mesas_examen;
 DROP TABLE IF EXISTS Estado_Academico;
  
 -- Creación de la Tabla Base: Usuario

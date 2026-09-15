@@ -148,12 +148,13 @@ return new ModelAndView(model, "carrera_form.mustache");
 
                             // Buscamos las materias asociadas ordenadas cronológicamente por año y cuatrimestre
                             List<Map> materiasRaw = Base.findAll(
-                                "SELECT m.codigo, m.nombre, m.anio_cursada, mp.tipo_cuatrimestre " +
+                                "SELECT m.codigo, m.nombre, m.anio_cursada, MAX(mp.tipo_cuatrimestre) as tipo_cuatrimestre " +
                                     "FROM Materia m " +
-                                    "JOIN Materia_Periodo mp ON m.codigo = mp.materia_codigo " +
+                                    "LEFT JOIN Materia_Periodo mp ON m.codigo = mp.materia_codigo " +
                                     "WHERE m.plan_estudio_id = ? " +
+                                    "GROUP BY m.codigo, m.nombre, m.anio_cursada " +
                                     "ORDER BY m.anio_cursada ASC, " +
-                                    "CASE mp.tipo_cuatrimestre " +
+                                    "CASE MAX(mp.tipo_cuatrimestre) " +
                                     "  WHEN 'PRIMER_CUATRIMESTRE' THEN 1 " +
                                     "  WHEN 'ANUAL' THEN 2 " +
                                     "  WHEN 'SEGUNDO_CUATRIMESTRE' THEN 3 " +
@@ -172,12 +173,9 @@ return new ModelAndView(model, "carrera_form.mustache");
 
                                 // Formateamos visualmente el año y cuatrimestre para la primera columna
                                 String cuatRaw = (String) mat.get("tipo_cuatrimestre");
-                                String cuatVista = cuatRaw;
-                                if ("PRIMER_CUATRIMESTRE".equals(cuatRaw)) cuatVista =
-                                    "I Cuat.";
-                                else if (
-                                    "SEGUNDO_CUATRIMESTRE".equals(cuatRaw)
-                                ) cuatVista = "II Cuat.";
+                                String cuatVista = cuatRaw != null ? cuatRaw : "N/A";
+                                if ("PRIMER_CUATRIMESTRE".equals(cuatRaw)) cuatVista = "I Cuat.";
+                                else if ("SEGUNDO_CUATRIMESTRE".equals(cuatRaw)) cuatVista = "II Cuat.";
                                 else if ("ANUAL".equals(cuatRaw)) cuatVista = "Anual";
                                 else if ("VERANO".equals(cuatRaw)) cuatVista = "Verano";
 
