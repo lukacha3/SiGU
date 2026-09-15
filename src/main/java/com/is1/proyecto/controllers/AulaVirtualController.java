@@ -4,23 +4,8 @@ import static spark.Spark.*; // Importa los métodos estáticos principales de S
 import com.fasterxml.jackson.databind.ObjectMapper; // Utilidad para serializar/deserializar objetos Java a/desde JSON.
 import com.is1.proyecto.config.DBConfigSingleton; // Clase Singleton para la configuración de la base de datos.
 import com.is1.proyecto.models.Anuncio;
-import com.is1.proyecto.models.AulaAsignacion;
-import com.is1.proyecto.models.Carrera;
-import com.is1.proyecto.models.Correlatividad;
-import com.is1.proyecto.models.DocenteCarrera;
-import com.is1.proyecto.models.DocenteMateria;
-import com.is1.proyecto.models.EstadoAcademico;
-import com.is1.proyecto.models.InscripcionExamen;
 import com.is1.proyecto.models.Materia;
-import com.is1.proyecto.models.MateriaPeriodo;
-import com.is1.proyecto.models.MesaExamen;
 import com.is1.proyecto.models.Nota;
-import com.is1.proyecto.models.PlanEstudio;
-import com.is1.proyecto.models.SecretariaAcademica;
-import com.is1.proyecto.models.Student;
-import com.is1.proyecto.models.Teacher;
-import com.is1.proyecto.models.User; // Modelo de ActiveJDBC que representa la tabla 'users'.
-import com.mysql.cj.exceptions.StreamingNotifiable;
 import java.net.URLEncoder;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
@@ -29,7 +14,6 @@ import java.util.HashMap; // Para crear mapas de datos (modelos para las plantil
 import java.util.List;
 import java.util.Map; // Interfaz Map, utilizada para Map.of() o HashMap.
 import org.javalite.activejdbc.Base; // Clase central de ActiveJDBC para gestionar la conexión a la base de datos.
-import org.javalite.activejdbc.Model;
 import org.mindrot.jbcrypt.BCrypt; // Utilidad para hashear y verificar contraseñas de forma segura.
 import spark.ModelAndView; // Representa un modelo de datos y el nombre de la vista a renderizar.
 import spark.template.mustache.MustacheTemplateEngine; // Motor de plantillas Mustache para Spark.
@@ -68,16 +52,7 @@ public class AulaVirtualController {
                         );
 
                         model.put("materias", materias);
-                        if (req.session().attribute("loggedIn") != null && req.session().attribute("loggedIn").equals(true)) {
-    if (req.session().attribute("fotoPerfil") != null) {
-        model.put("foto_perfil", req.session().attribute("fotoPerfil"));
-    } else {
-        model.put("foto_perfil", "/img/default-avatar.png");
-    }
-    if (!model.containsKey("username") && req.session().attribute("currentUserUsername") != null) {
-        model.put("username", req.session().attribute("currentUserUsername"));
-    }
-}
+                        com.is1.proyecto.config.SessionHelper.populateUserContext(req, model);
 return new ModelAndView(
                             model,
                             "aula_virtual_selector.mustache"
@@ -210,16 +185,7 @@ return new ModelAndView(
                             model.put("anuncios", new java.util.ArrayList<>());
                         }
 
-                        if (req.session().attribute("loggedIn") != null && req.session().attribute("loggedIn").equals(true)) {
-    if (req.session().attribute("fotoPerfil") != null) {
-        model.put("foto_perfil", req.session().attribute("fotoPerfil"));
-    } else {
-        model.put("foto_perfil", "/img/default-avatar.png");
-    }
-    if (!model.containsKey("username") && req.session().attribute("currentUserUsername") != null) {
-        model.put("username", req.session().attribute("currentUserUsername"));
-    }
-}
+                        com.is1.proyecto.config.SessionHelper.populateUserContext(req, model);
 return new ModelAndView(model, "aula_virtual_tablero.mustache");
                     },
                     new MustacheTemplateEngine()
@@ -250,72 +216,49 @@ return new ModelAndView(model, "aula_virtual_tablero.mustache");
                         ).intValue();
 
                         // Materias en las que el alumno está INSCRIPTO (cursando)
-                        List<Map> materiasInscriptas = Base.findAll(
-                            "SELECT ea.materia_codigo, m.nombre FROM Estado_Academico ea " +
-                                "JOIN Materia m ON m.codigo = ea.materia_codigo " +
-                                "WHERE ea.usuario_id = ? AND ea.estado = 'INSCRIPTO'",
+                        List<Map> filas = Base.findAll(
+                            "SELECT ea.materia_codigo, m.nombre AS materia_nombre, " +
+                            "       a.id AS anuncio_id, a.tipo, a.titulo, a.contenido, a.fecha_examen, " +
+                            "       ip.id AS inscripcion_parcial_id " +
+                            "FROM Estado_Academico ea " +
+                            "JOIN Materia m ON m.codigo = ea.materia_codigo " +
+                            "LEFT JOIN Materia_Periodo mp ON mp.materia_codigo = ea.materia_codigo " +
+                            "LEFT JOIN Anuncio a ON a.materia_periodo_id = mp.id " +
+                            "LEFT JOIN Inscripcion_Parcial ip ON ip.anuncio_id = a.id AND ip.usuario_id = ea.usuario_id " +
+                            "WHERE ea.usuario_id = ? AND ea.estado = 'INSCRIPTO' " +
+                            "ORDER BY m.nombre ASC, a.fecha_creacion DESC",
                             alumnoId
                         );
 
-                        List<Map<String, Object>> materiasConAnuncios =
-                            new ArrayList<>();
-                        for (Map mat : materiasInscriptas) {
-                            int codigo = (
-                                (Number) mat.get("materia_codigo")
-                            ).intValue();
+                        Map<Integer, Map<String, Object>> materiasPorCodigo = new java.util.LinkedHashMap<>();
+                        for (Map fila : filas) {
+                            int codigo = ((Number) fila.get("materia_codigo")).intValue();
 
-                            // Buscar el período vigente de esta materia
-                            List<Map> periodoRows = Base.findAll(
-                                "SELECT id FROM Materia_Periodo WHERE materia_codigo = ? LIMIT 1",
-                                codigo
-                            );
-                            if (periodoRows.isEmpty()) continue;
-                            int periodoId = (
-                                (Number) periodoRows.get(0).get("id")
-                            ).intValue();
+                            Map<String, Object> materiaMap = materiasPorCodigo.computeIfAbsent(codigo, k -> {
+                                Map<String, Object> m = new HashMap<>();
+                                m.put("codigo", codigo);
+                                m.put("nombre", fila.get("materia_nombre"));
+                                m.put("anuncios", new ArrayList<Map<String, Object>>());
+                                return m;
+                            });
 
-                            // Anuncios del período
-                            List<Map> anunciosDB = Base.findAll(
-                                "SELECT a.id, a.tipo, a.titulo, a.contenido, a.fecha_examen " +
-                                    "FROM Anuncio a WHERE a.materia_periodo_id = ? ORDER BY a.fecha_creacion DESC",
-                                periodoId
-                            );
-
-                            List<Map<String, Object>> anunciosList = new ArrayList<>();
-                            for (Map a : anunciosDB) {
+                            if (fila.get("anuncio_id") != null) {
                                 Map<String, Object> anuncioMap = new HashMap<>();
-                                anuncioMap.put("id", a.get("id"));
-                                anuncioMap.put("tipo", a.get("tipo"));
-                                anuncioMap.put("titulo", a.get("titulo"));
-                                anuncioMap.put("contenido", a.get("contenido"));
-                                anuncioMap.put("fechaExamen", a.get("fecha_examen"));
-                                anuncioMap.put(
-                                    "esExamen",
-                                    "EXAMEN".equals(a.get("tipo"))
-                                );
-
-                                // Verificar si el alumno ya se inscribió a este parcial
-                                if ("EXAMEN".equals(a.get("tipo"))) {
-                                    int anuncioId = ((Number) a.get("id")).intValue();
-                                    List<Map> yaInscripto = Base.findAll(
-                                        "SELECT id FROM Inscripcion_Parcial WHERE usuario_id = ? AND anuncio_id = ?",
-                                        alumnoId,
-                                        anuncioId
-                                    );
-                                    anuncioMap.put(
-                                        "yaInscripto",
-                                        !yaInscripto.isEmpty()
-                                    );
+                                anuncioMap.put("id", fila.get("anuncio_id"));
+                                anuncioMap.put("tipo", fila.get("tipo"));
+                                anuncioMap.put("titulo", fila.get("titulo"));
+                                anuncioMap.put("contenido", fila.get("contenido"));
+                                anuncioMap.put("fechaExamen", fila.get("fecha_examen"));
+                                boolean esExamen = "EXAMEN".equals(fila.get("tipo"));
+                                anuncioMap.put("esExamen", esExamen);
+                                if (esExamen) {
+                                    anuncioMap.put("yaInscripto", fila.get("inscripcion_parcial_id") != null);
                                 }
-                                anunciosList.add(anuncioMap);
+                                ((List<Map<String, Object>>) materiaMap.get("anuncios")).add(anuncioMap);
                             }
-
-                            Map<String, Object> materiaMap = new HashMap<>();
-                            materiaMap.put("codigo", codigo);
-                            materiaMap.put("nombre", mat.get("nombre"));
-                            materiaMap.put("anuncios", anunciosList);
-                            materiasConAnuncios.add(materiaMap);
                         }
+
+                        List<Map<String, Object>> materiasConAnuncios = new ArrayList<>(materiasPorCodigo.values());
 
                         Map<String, Object> model = new HashMap<>();
                         model.put("materias", materiasConAnuncios);
@@ -324,16 +267,7 @@ return new ModelAndView(model, "aula_virtual_tablero.mustache");
                         if (success != null) model.put("successMessage", success);
                         if (error != null) model.put("errorMessage", error);
 
-                        if (req.session().attribute("loggedIn") != null && req.session().attribute("loggedIn").equals(true)) {
-    if (req.session().attribute("fotoPerfil") != null) {
-        model.put("foto_perfil", req.session().attribute("fotoPerfil"));
-    } else {
-        model.put("foto_perfil", "/img/default-avatar.png");
-    }
-    if (!model.containsKey("username") && req.session().attribute("currentUserUsername") != null) {
-        model.put("username", req.session().attribute("currentUserUsername"));
-    }
-}
+                        com.is1.proyecto.config.SessionHelper.populateUserContext(req, model);
 return new ModelAndView(model, "aula_virtual.mustache");
                     },
                     new MustacheTemplateEngine()

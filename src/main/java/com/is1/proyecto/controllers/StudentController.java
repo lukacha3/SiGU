@@ -37,16 +37,7 @@ public class StudentController {
             );
             model.put("planes", planesVigentes);
 
-            if (req.session().attribute("loggedIn") != null && req.session().attribute("loggedIn").equals(true)) {
-    if (req.session().attribute("fotoPerfil") != null) {
-        model.put("foto_perfil", req.session().attribute("fotoPerfil"));
-    } else {
-        model.put("foto_perfil", "/img/default-avatar.png");
-    }
-    if (!model.containsKey("username") && req.session().attribute("currentUserUsername") != null) {
-        model.put("username", req.session().attribute("currentUserUsername"));
-    }
-}
+            com.is1.proyecto.config.SessionHelper.populateUserContext(req, model);
 return new ModelAndView(model, "student_form.mustache");
         }, new MustacheTemplateEngine());
 
@@ -86,16 +77,7 @@ return new ModelAndView(model, "student_form.mustache");
             Map<String, Object> infoPlan = studentService.getInformacionPlan(userId);
             if (infoPlan == null) {
                 model.put("errorMessage", "No se encontraron datos de tu cuenta de estudiante.");
-                if (req.session().attribute("loggedIn") != null && req.session().attribute("loggedIn").equals(true)) {
-    if (req.session().attribute("fotoPerfil") != null) {
-        model.put("foto_perfil", req.session().attribute("fotoPerfil"));
-    } else {
-        model.put("foto_perfil", "/img/default-avatar.png");
-    }
-    if (!model.containsKey("username") && req.session().attribute("currentUserUsername") != null) {
-        model.put("username", req.session().attribute("currentUserUsername"));
-    }
-}
+                com.is1.proyecto.config.SessionHelper.populateUserContext(req, model);
 return new ModelAndView(model, "historia_academica.mustache");
             }
 
@@ -103,16 +85,7 @@ return new ModelAndView(model, "historia_academica.mustache");
             List<Map<String, Object>> materias = studentService.getHistoriaAcademica(userId, (Integer) infoPlan.get("planEstudioId"));
             model.put("materias", materias);
 
-            if (req.session().attribute("loggedIn") != null && req.session().attribute("loggedIn").equals(true)) {
-    if (req.session().attribute("fotoPerfil") != null) {
-        model.put("foto_perfil", req.session().attribute("fotoPerfil"));
-    } else {
-        model.put("foto_perfil", "/img/default-avatar.png");
-    }
-    if (!model.containsKey("username") && req.session().attribute("currentUserUsername") != null) {
-        model.put("username", req.session().attribute("currentUserUsername"));
-    }
-}
+            com.is1.proyecto.config.SessionHelper.populateUserContext(req, model);
 return new ModelAndView(model, "historia_academica.mustache");
         }, new MustacheTemplateEngine());
 
@@ -211,16 +184,7 @@ return new ModelAndView(viewData, "inscripcion_materias.mustache");
             String err = req.queryParams("error");
             if (err != null && !err.isEmpty()) model.put("errorMessage", err);
 
-            if (req.session().attribute("loggedIn") != null && req.session().attribute("loggedIn").equals(true)) {
-    if (req.session().attribute("fotoPerfil") != null) {
-        model.put("foto_perfil", req.session().attribute("fotoPerfil"));
-    } else {
-        model.put("foto_perfil", "/img/default-avatar.png");
-    }
-    if (!model.containsKey("username") && req.session().attribute("currentUserUsername") != null) {
-        model.put("username", req.session().attribute("currentUserUsername"));
-    }
-}
+            com.is1.proyecto.config.SessionHelper.populateUserContext(req, model);
 return new ModelAndView(model, "estudiante_edit_form.mustache");
         }, new MustacheTemplateEngine());
 

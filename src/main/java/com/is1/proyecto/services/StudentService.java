@@ -106,13 +106,13 @@ public class StudentService {
 
             String estadoClase = "";
             switch (estado != null ? estado : "") {
-                case "APROBADO": estadoClase = "bg-green-500/20 text-green-300 border-green-500/40"; break;
-                case "PROMOCION": estadoClase = "bg-yellow-400/20 text-yellow-200 border-yellow-400/40"; break;
-                case "REGULAR": estadoClase = "bg-blue-500/20 text-blue-300 border-blue-500/40"; break;
-                case "INSCRIPTO": estadoClase = "bg-purple-500/20 text-purple-300 border-purple-500/40"; break;
-                case "REPROBADO": estadoClase = "bg-red-500/20 text-red-300 border-red-500/40"; break;
-                case "LIBRE": estadoClase = "bg-orange-500/20 text-orange-300 border-orange-500/40"; break;
-                default: estadoClase = "bg-white/5 text-white/30 border-white/10"; break;
+                case "APROBADO": estadoClase = "bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-300 border-green-200 dark:border-green-500/40"; break;
+                case "PROMOCION": estadoClase = "bg-yellow-100 text-yellow-700 dark:bg-yellow-500/20 dark:text-yellow-300 border-yellow-200 dark:border-yellow-500/40"; break;
+                case "REGULAR": estadoClase = "bg-[#eaf2ff] text-[#1a3a5c] dark:bg-[#2471a3]/30 dark:text-[#eaf2ff] border-[#2471a3]/30 dark:border-[#2471a3]/50"; break;
+                case "INSCRIPTO": estadoClase = "bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-300 border-purple-200 dark:border-purple-500/40"; break;
+                case "REPROBADO": estadoClase = "bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-300 border-red-200 dark:border-red-500/40"; break;
+                case "LIBRE": estadoClase = "bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400 border-red-200 dark:border-red-500/30"; break;
+                default: estadoClase = "bg-gray-100 text-gray-500 dark:bg-gray-800/50 dark:text-gray-400 border-gray-200 dark:border-gray-700"; break;
             }
             item.put("estadoClase", estadoClase);
 

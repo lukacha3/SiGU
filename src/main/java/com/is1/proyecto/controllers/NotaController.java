@@ -73,16 +73,7 @@ public class NotaController {
             if (success != null) model.put("successMessage", success);
             if (error != null) model.put("errorMessage", error);
 
-            if (req.session().attribute("loggedIn") != null && req.session().attribute("loggedIn").equals(true)) {
-                if (req.session().attribute("fotoPerfil") != null) {
-                    model.put("foto_perfil", req.session().attribute("fotoPerfil"));
-                } else {
-                    model.put("foto_perfil", "/img/default-avatar.png");
-                }
-                if (!model.containsKey("username") && req.session().attribute("currentUserUsername") != null) {
-                    model.put("username", req.session().attribute("currentUserUsername"));
-                }
-            }
+            com.is1.proyecto.config.SessionHelper.populateUserContext(req, model);
             return new ModelAndView(model, "carga_finales.mustache");
         }, new MustacheTemplateEngine());
 
@@ -109,16 +100,7 @@ public class NotaController {
                 if (success != null) model.put("successMessage", success);
                 if (error != null) model.put("errorMessage", error);
 
-                if (req.session().attribute("loggedIn") != null && req.session().attribute("loggedIn").equals(true)) {
-                    if (req.session().attribute("fotoPerfil") != null) {
-                        model.put("foto_perfil", req.session().attribute("fotoPerfil"));
-                    } else {
-                        model.put("foto_perfil", "/img/default-avatar.png");
-                    }
-                    if (!model.containsKey("username") && req.session().attribute("currentUserUsername") != null) {
-                        model.put("username", req.session().attribute("currentUserUsername"));
-                    }
-                }
+                com.is1.proyecto.config.SessionHelper.populateUserContext(req, model);
                 return new ModelAndView(model, "carga_finales_acta.mustache");
             } catch (Exception e) {
                 res.redirect("/docente/notas-finales?error=" + URLEncoder.encode(e.getMessage(), StandardCharsets.UTF_8.toString()));

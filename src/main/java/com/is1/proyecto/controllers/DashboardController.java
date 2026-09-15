@@ -3,24 +3,6 @@ package com.is1.proyecto.controllers;
 import static spark.Spark.*; // Importa los métodos estáticos principales de Spark (get, post, before, after, etc.).
 import com.fasterxml.jackson.databind.ObjectMapper; // Utilidad para serializar/deserializar objetos Java a/desde JSON.
 import com.is1.proyecto.config.DBConfigSingleton; // Clase Singleton para la configuración de la base de datos.
-import com.is1.proyecto.models.Anuncio;
-import com.is1.proyecto.models.AulaAsignacion;
-import com.is1.proyecto.models.Carrera;
-import com.is1.proyecto.models.Correlatividad;
-import com.is1.proyecto.models.DocenteCarrera;
-import com.is1.proyecto.models.DocenteMateria;
-import com.is1.proyecto.models.EstadoAcademico;
-import com.is1.proyecto.models.InscripcionExamen;
-import com.is1.proyecto.models.Materia;
-import com.is1.proyecto.models.MateriaPeriodo;
-import com.is1.proyecto.models.MesaExamen;
-import com.is1.proyecto.models.Nota;
-import com.is1.proyecto.models.PlanEstudio;
-import com.is1.proyecto.models.SecretariaAcademica;
-import com.is1.proyecto.models.Student;
-import com.is1.proyecto.models.Teacher;
-import com.is1.proyecto.models.User; // Modelo de ActiveJDBC que representa la tabla 'users'.
-import com.mysql.cj.exceptions.StreamingNotifiable;
 import java.net.URLEncoder;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
@@ -29,7 +11,6 @@ import java.util.HashMap; // Para crear mapas de datos (modelos para las plantil
 import java.util.List;
 import java.util.Map; // Interfaz Map, utilizada para Map.of() o HashMap.
 import org.javalite.activejdbc.Base; // Clase central de ActiveJDBC para gestionar la conexión a la base de datos.
-import org.javalite.activejdbc.Model;
 import org.mindrot.jbcrypt.BCrypt; // Utilidad para hashear y verificar contraseñas de forma segura.
 import spark.ModelAndView; // Representa un modelo de datos y el nombre de la vista a renderizar.
 import spark.template.mustache.MustacheTemplateEngine; // Motor de plantillas Mustache para Spark.
@@ -86,16 +67,7 @@ public class DashboardController {
                         model.put("isSecretaria",        "SECRETARIA".equals(userRole));
                         model.put("isAdminOrSecretaria", "ADMIN".equals(userRole) || "SECRETARIA".equals(userRole));
 
-                        if (req.session().attribute("loggedIn") != null && req.session().attribute("loggedIn").equals(true)) {
-    if (req.session().attribute("fotoPerfil") != null) {
-        model.put("foto_perfil", req.session().attribute("fotoPerfil"));
-    } else {
-        model.put("foto_perfil", "/img/default-avatar.png");
-    }
-    if (!model.containsKey("username") && req.session().attribute("currentUserUsername") != null) {
-        model.put("username", req.session().attribute("currentUserUsername"));
-    }
-}
+                        com.is1.proyecto.config.SessionHelper.populateUserContext(req, model);
 return new ModelAndView(model, "dashboard.mustache");
                     },
                     new MustacheTemplateEngine()
