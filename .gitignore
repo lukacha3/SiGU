@@ -29,5 +29,6 @@ public/img/uploads/*
 fix_controllers.py
 
 # Variables de entorno locales (nunca commitear)
-.envtailwindcss
+.env
+tailwindcss
 dependency-reduced-pom.xml
